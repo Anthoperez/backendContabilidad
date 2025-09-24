@@ -12,6 +12,12 @@ export class AppController {
     return this.appService.create(gastoData);
   }
 
+    // ¡NUEVO ENDPOINT para importar en lote!
+  @Post('import')
+  import(@Body() gastosData: Partial<Gasto>[]) {
+    return this.appService.createMany(gastosData);
+  }
+
   @Get()
   findAll() {
     return this.appService.findAll();

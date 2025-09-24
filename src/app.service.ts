@@ -17,6 +17,13 @@ export class AppService {
     return this.gastoRepository.save(nuevoGasto);
   }
 
+    // ¡NUEVA LÓGICA para guardar muchos gastos a la vez!
+  async createMany(gastosData: Partial<Gasto>[]): Promise<Gasto[]> {
+    const gastos = this.gastoRepository.create(gastosData);
+    return this.gastoRepository.save(gastos);
+  }
+  
+
   // Lógica para obtener todos los gastos
   findAll(): Promise<Gasto[]> {
     return this.gastoRepository.find({ order: { fechaRegistro: 'DESC' } });
