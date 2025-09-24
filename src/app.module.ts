@@ -9,7 +9,7 @@ import { Gasto } from './gasto.entity';
     imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
+      host: '127.0.0.1',
       port: 5432,
       username: 'postgres', // Este es el usuario por defecto
       password: '70707070', // <-- ¡PON AQUÍ TU CONTRASEÑA!
