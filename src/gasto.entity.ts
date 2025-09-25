@@ -25,7 +25,7 @@ export class Gasto {
   @Column()
   especifica: string;
 
-  @Column() // <-- Mantenemos el tipo por defecto para la fecha
+  @Column({nullable: true}) // <-- Mantenemos el tipo por defecto para la fecha
   fechaDevengado: Date;
 
   @Column()
