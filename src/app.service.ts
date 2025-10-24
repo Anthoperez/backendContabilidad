@@ -5,11 +5,14 @@ import { Gasto } from './gasto.entity';
 import * as ExcelJS from 'exceljs';
 
 // --- INTERFACES PARA LA ESTRUCTURA DE LOS REPORTES ---
+// ▼▼▼ MODIFICACIÓN 1: Añadida la nueva categoría ▼▼▼
 interface ReporteDataMensual {
   gastosCorrientes: Gasto[];
+  subvencionesEnsenanza: Gasto[]; // <-- NUEVA LÍNEA
   subvenciones: Gasto[];
   gastosCapital: Gasto[];
 }
+// ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
 interface ReporteDataConsolidado {
   bienesCorrientes: number;
@@ -36,13 +39,13 @@ export class AppService {
       if (gasto.proyecto && typeof gasto.proyecto === 'string') {
         gasto.proyecto = gasto.proyecto.trim();
       }
-      // Aseguramos que los campos que deben ser texto, lo sean
-      if (gasto.numeroDocumento) {
-        gasto.numeroDocumento = String(gasto.numeroDocumento);
-      }
-      if (gasto.siaf) {
-        gasto.siaf = String(gasto.siaf);
-      }
+      // Aseguramos que los campos que deben ser texto, lo sean
+      if (gasto.numeroDocumento) {
+        gasto.numeroDocumento = String(gasto.numeroDocumento);
+      }
+      if (gasto.siaf) {
+        gasto.siaf = String(gasto.siaf);
+      }
       return gasto;
     });
     const nuevosGastos = this.gastoRepository.create(gastosLimpios);
@@ -88,8 +91,9 @@ export class AppService {
     return workbook;
   }
 
-  // --- LÓGICA DE CLASIFICACIÓN Y AGRUPACIÓN (Sin cambios) ---
+  // --- LÓGICA DE CLASIFICACIÓN Y AGRUPACIÓN ---
   private groupGastosByMonth(gastos: Gasto[]): Map<string, Gasto[]> {
+    // ... (Esta función no tiene cambios) ...
     const gastosPorMes = new Map<string, Gasto[]>();
     const monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
     for (const gasto of gastos) {
@@ -105,26 +109,35 @@ export class AppService {
     return gastosPorMes;
   }
 
+  // ▼▼▼ MODIFICACIÓN 2: Lógica de clasificación actualizada a 4 categorías ▼▼▼
   private clasificarGastosParaMes(gastos: Gasto[]): ReporteDataMensual {
     const reporte: ReporteDataMensual = {
       gastosCorrientes: [],
+      subvencionesEnsenanza: [], // <-- Inicializada
       subvenciones: [],
       gastosCapital: [],
     };
+
     for (const gasto of gastos) {
       const especifica = gasto.especifica?.trim() || '';
-      if (especifica.startsWith('2.6.')) {
-        reporte.gastosCapital.push(gasto);
+      
+      if (especifica.startsWith('2.3.')) {
+        reporte.gastosCorrientes.push(gasto);
       } else if (especifica.startsWith('2.5.')) {
         reporte.subvenciones.push(gasto);
+      } else if (especifica.startsWith('2.6.')) {
+        reporte.gastosCapital.push(gasto);
       } else {
-        reporte.gastosCorrientes.push(gasto);
+        // Categoría "catch-all" para todo lo demás
+        reporte.subvencionesEnsenanza.push(gasto);
       }
     }
     return reporte;
   }
+  // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
   private clasificarGastosParaConsolidado(gastos: Gasto[]): ReporteDataConsolidado {
+    // ... (Esta función no tiene cambios) ...
     const reporte: ReporteDataConsolidado = {
       bienesCorrientes: 0,
       bienesCapital: 0,
@@ -150,6 +163,7 @@ export class AppService {
   // --- CONSTRUCTORES DE HOJAS DE EXCEL ---
 
   private crearHojaConsolidado(workbook: ExcelJS.Workbook, projectName: string, gastosPorMes: Map<string, Gasto[]>): void {
+    // ... (Esta función no tiene cambios) ...
     const worksheet = workbook.addWorksheet('CONSOLIDADO 2025');
     const titleStyle: Partial<ExcelJS.Style> = { font: { bold: true, size: 12 }, alignment: { horizontal: 'center' } };
     const boldStyle: Partial<ExcelJS.Style> = { font: { bold: true } };
@@ -228,23 +242,23 @@ export class AppService {
         totalRow.getCell(i).numFmt = moneyFormat;
     }
 
-    // ⭐ --- NUEVA SECCIÓN: Anchos de columna fijos ---
-    // Se definen los anchos para cada columna de la hoja CONSOLIDADO.
-    worksheet.getColumn('A').width = 25; // MES/AÑO y etiquetas de presupuesto
-    worksheet.getColumn('B').width = 5;  // Columna vacía de separación
-    worksheet.getColumn('C').width = 22; // Aporte... / BIENES CORRIENTES
-    worksheet.getColumn('D').width = 22; // Aporte... / BIENES CAPITAL
-    worksheet.getColumn('E').width = 22; // Aporte... / SERVICIOS
-    worksheet.getColumn('F').width = 22; // SUBVENCION
-    worksheet.getColumn('G').width = 22; // VIATICOS
-    worksheet.getColumn('H').width = 22; // ENCARGO INTERNO
-    worksheet.getColumn('I').width = 22; // TOTAL
-    
+    // --- Anchos de columna fijos ---
+    worksheet.getColumn('A').width = 25; 
+    worksheet.getColumn('B').width = 5;  
+    worksheet.getColumn('C').width = 22; 
+    worksheet.getColumn('D').width = 22; 
+    worksheet.getColumn('E').width = 22; 
+    worksheet.getColumn('F').width = 22; 
+    worksheet.getColumn('G').width = 22; 
+    worksheet.getColumn('H').width = 22; 
+    worksheet.getColumn('I').width = 22; 
   }
 
+ // ▼▼▼ MODIFICACIÓN 3: Lógica de renderizado de plantilla completa ▼▼▼
   private crearHojaDeReportePorMes(workbook: ExcelJS.Workbook, sheetName: string, data: ReporteDataMensual, projectName: string): void {
     const worksheet = workbook.addWorksheet(sheetName);
 
+    // --- Definición de Estilos (sin cambios) ---
     const headerStyle: Partial<ExcelJS.Style> = {
         font: { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } },
         alignment: { vertical: 'middle', horizontal: 'center', wrapText: true },
@@ -260,18 +274,16 @@ export class AppService {
         alignment: { vertical: 'middle' },
         border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
     };
-    // ⭐ NUEVO: Estilo específico para celdas con texto que debe ajustarse
     const wrapTextStyle: Partial<ExcelJS.Style> = {
         ...cellStyle,
         alignment: { ...cellStyle.alignment, wrapText: true }
     };
+    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const boldTitleStyle: Partial<ExcelJS.Style> = {
+      font: { name: 'Arial', size: 11, bold: true }
+    };
 
-    // ▼▼▼ MODIFICACIÓN AQUÍ (1) ▼▼▼
-    // Añadido formato de moneda con rojos para negativos
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
-    // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
-
-
+    // --- Encabezados de la Hoja (sin cambios) ---
     worksheet.mergeCells('A1:N1');
     worksheet.getCell('A1').value = `EJECUCIÓN DE GASTOS - ${sheetName}`;
     worksheet.getCell('A1').font = { name: 'Arial', size: 14, bold: true };
@@ -285,13 +297,17 @@ export class AppService {
     let currentRow = 4;
     let totalGeneral = 0;
 
-    const renderSection = (title: string, gastos: Gasto[]) => {
-      if (gastos.length === 0) return;
+    // --- Nueva Función 'renderSection' ---
+    // Esta función ahora SIEMPRE dibuja la sección, y añade filas vacías si no hay datos.
+    const renderSection = (title: string, gastos: Gasto[], emptyRowsToShow = 5) => {
+      // 1. Dibujar Título de la Sección (Siempre)
       worksheet.mergeCells(currentRow, 1, currentRow, 14);
-      worksheet.getCell(`A${currentRow}`).value = title;
-      worksheet.getCell(`A${currentRow}`).font = { name: 'Arial', size: 11, bold: true };
+      const titleCell = worksheet.getCell(`A${currentRow}`);
+      titleCell.value = title;
+      titleCell.style = boldTitleStyle;
       currentRow++;
       
+      // 2. Dibujar Cabeceras (Siempre)
       const headers = ['DOC','N°','SIAF','A NOMBRE DE','CONCEPTO','MONTO','ESPECIFICA','MONTO2','ESPECIFICA2','F.F.','MES','F. DEVENGADO','PROYECTO','META'];
       const headerRow = worksheet.getRow(currentRow);
       headerRow.values = headers;
@@ -300,65 +316,78 @@ export class AppService {
 
       const startDataRow = currentRow;
       let totalSection = 0;
-      gastos.forEach(gasto => {
-        worksheet.addRow([
-          gasto.tipoDocumento, gasto.numeroDocumento, gasto.siaf,
-          gasto.aNombreDe, gasto.concepto, gasto.monto,
-          gasto.especifica, gasto.monto2, gasto.especifica2,
-          gasto.ff, gasto.mes, gasto.fechaDevengado,
-          gasto.proyecto, gasto.meta
-        ]);
-        const addedRow = worksheet.getRow(currentRow);
-        
-        // ▼▼▼ MODIFICACIÓN AQUÍ (2) ▼▼▼
-        addedRow.getCell(6).numFmt = moneyFormat;
-        // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
-        totalSection += Number(gasto.monto) || 0;
-        currentRow++;
-      });
+      // 3. Dibujar Datos (Si existen)
+      if (gastos.length > 0) {
+        gastos.forEach(gasto => {
+          worksheet.addRow([
+            gasto.tipoDocumento, gasto.numeroDocumento, gasto.siaf,
+            gasto.aNombreDe, gasto.concepto, gasto.monto,
+            gasto.especifica, gasto.monto2, gasto.especifica2,
+            gasto.ff, gasto.mes, gasto.fechaDevengado,
+            gasto.proyecto, gasto.meta
+          ]);
+          const addedRow = worksheet.getRow(currentRow);
+          addedRow.getCell(6).numFmt = moneyFormat; // Formato Moneda (Monto)
+          if(gasto.monto2) {
+             addedRow.getCell(8).numFmt = moneyFormat; // Formato Moneda (Monto2)
+          }
+          totalSection += Number(gasto.monto) || 0;
+          currentRow++;
+          });
+      } else {
+        // 4. Dibujar Filas Vacías (Si no hay datos)
+        for(let i = 0; i < emptyRowsToShow; i++) {
+          const emptyRow = worksheet.addRow([]);
+          // Aplicar estilo de celda a las filas vacías para que se vea la cuadrícula
+          for(let j = 1; j <= headers.length; j++) {
+            emptyRow.getCell(j).style = cellStyle;
+          }
+          currentRow++;
+        }
+      }
       
+      // 5. Aplicar Estilos a las filas de datos (o a las vacías)
       for(let i = startDataRow; i < currentRow; i++) {
         const row = worksheet.getRow(i);
         row.eachCell((cell, colNumber) => {
-            //  MODIFICACIÓN: Aplicar estilo de ajuste de texto a columnas específicas
-            if (colNumber === 4 || colNumber === 5) { // Columnas 'A NOMBRE DE' y 'CONCEPTO'
-                cell.style = wrapTextStyle;
-            } else {
-                cell.style = cellStyle;
-            }
+          // No sobreescribir estilos ya aplicados (como el de celda vacía)
+          if (!cell.style || Object.keys(cell.style).length === 0) {
+              if (colNumber === 4 || colNumber === 5) { // 'A NOMBRE DE' y 'CONCEPTO'
+                  cell.style = wrapTextStyle;
+              } else {
+                  cell.style = cellStyle;
+              }
+          }
         });
       }
 
+      // 6. Dibujar Fila de Total (Siempre)
       const totalRow = worksheet.getRow(currentRow);
       totalRow.getCell(5).value = `Total ${title}`;
-      totalRow.getCell(6).value = totalSection;
+      totalRow.getCell(6).value = totalSection; // Será 0 si no hay gastos
       totalRow.getCell(5).style = totalRowStyle;
-
-      // ▼▼▼ MODIFICACIÓN AQUÍ (3) ▼▼▼
       totalRow.getCell(6).style = { ...totalRowStyle, numFmt: moneyFormat, alignment: { horizontal: 'left' } };
-      // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
-      
-      currentRow += 2;
+      
+      currentRow += 2; // Espacio entre secciones
       totalGeneral += totalSection;
     };
 
+    // --- Llamadas a Renderizado ---
+    // Se llama a las 4 secciones en orden, siempre.
     renderSection('Gastos Corrientes', data.gastosCorrientes);
+    renderSection('Subvenciones por enseñanza', data.subvencionesEnsenanza);
     renderSection('Subvenciones', data.subvenciones);
     renderSection('Gastos de Capital', data.gastosCapital);
 
+    // --- Fila de Total General (sin cambios) ---
     const grandTotalRow = worksheet.getRow(currentRow);
     grandTotalRow.getCell(5).value = `TOTAL GENERAL`;
     grandTotalRow.getCell(6).value = totalGeneral;
     grandTotalRow.getCell(5).style = totalRowStyle;
-
-    // ▼▼▼ MODIFICACIÓN AQUÍ (4) ▼▼▼
     grandTotalRow.getCell(6).style = { ...totalRowStyle, numFmt: moneyFormat, alignment: { horizontal: 'left' } };
-    // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
     
-    // --- SECCIÓN MODIFICADA: Anchos de columna fijos ---
-    // Se reemplaza el bucle de auto-ajuste por anchos definidos.
-    // Puedes cambiar estos valores según tus preferencias.
+    // --- Anchos de Columna (sin cambios) ---
     const columnWidths = [
         { key: 'DOC', width: 10 },
         { key: 'N°', width: 12 },
@@ -377,30 +406,20 @@ export class AppService {
     ];
 
     columnWidths.forEach((col, index) => {
-      // ▼▼▼ MODIFICACIÓN AQUÍ (5) ▼▼▼
-      const colNum = index + 1;
+      const colNum = index + 1;
       const column = worksheet.getColumn(colNum);
-      column.width = col.width;
+      column.width = col.width;
 
-      // Forzar formato de TEXTO para N° (col 2) y SIAF (col 3)
-      if (colNum === 2 || colNum === 3) {
-        column.numFmt = '@';
-      }
-      // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+      // Forzar formato de TEXTO para N° (col 2) y SIAF (col 3)
+      if (colNum === 2 || colNum === 3) {
+        column.numFmt = '@';
+      }
 
-      // ▼▼▼ MODIFICACIÓN AQUÍ ▼▼▼
-      // Forzar formato de FECHA para F. DEVENGADO (col 12)
-      if (colNum === 12) {
-        column.numFmt = 'dd/mm/yyyy';
-      }
-      // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
-
-      
+      // Forzar formato de FECHA para F. DEVENGADO (col 12)
+      if (colNum === 12) {
+        column.numFmt = 'dd/mm/yyyy';
+      }
     });
-
-    /*
-    // Bucle original de auto-ajuste (eliminado)
-    ...
-    */
   }
 }
+// ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
