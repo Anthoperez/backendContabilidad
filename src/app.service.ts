@@ -327,23 +327,23 @@ export class AppService {
     currentRow++;
     currentRow++;
 
-  // ... (SECCIÓN DESCRIPCIÓN DE PRESUPUESTO - Cabeceras)
-  // Colocamos la DESCRIPCION DE PRESUPUESTO en la misma fila que los headers de aporte
-  worksheet.getCell(`A${currentRow}`).value = 'DESCRIPCION DE PRESUPUESTO';
-  worksheet.getCell(`A${currentRow}`).font = { bold: true };
-  // Reservar A:B para la descripción
-  worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-  worksheet.getCell(`C${currentRow}`).value = 'Aporte Monetaria o no monetaria (Valorizado S/)';
-  worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
-  worksheet.getCell(`C${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-  worksheet.getCell(`E${currentRow}`).value = 'Aporte Monetario S/';
-  worksheet.getCell(`E${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-  worksheet.getCell(`F${currentRow}`).value = 'Aporte Total S/';
-  worksheet.mergeCells(`F${currentRow}:I${currentRow}`);
-  worksheet.getCell(`F${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-  // Aplicar bordes a toda la fila de cabecera de presupuesto
-  for (let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
-  currentRow++;
+    // ... (SECCIÓN DESCRIPCIÓN DE PRESUPUESTO - Cabeceras)
+    // Colocamos la DESCRIPCION DE PRESUPUESTO en la misma fila que los headers de aporte
+    worksheet.getCell(`A${currentRow}`).value = 'DESCRIPCION DE PRESUPUESTO';
+    worksheet.getCell(`A${currentRow}`).font = { bold: true };
+    // Reservar A:B para la descripción
+    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+    worksheet.getCell(`C${currentRow}`).value = 'Aporte Monetaria o no monetaria (Valorizado S/)';
+    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
+    worksheet.getCell(`C${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    worksheet.getCell(`E${currentRow}`).value = 'Aporte Monetario S/';
+    worksheet.getCell(`E${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    worksheet.getCell(`F${currentRow}`).value = 'Aporte Total S/';
+    worksheet.mergeCells(`F${currentRow}:I${currentRow}`);
+    worksheet.getCell(`F${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    // Aplicar bordes a toda la fila de cabecera de presupuesto
+    for (let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    currentRow++;
 
     // ... (Fila PROCIENCIA) ...
     worksheet.getCell(`A${currentRow}`).value = 'PROCIENCIA';
@@ -817,4 +817,155 @@ export class AppService {
       }
     });
   }
+
+  // ▼▼▼ AÑADIR ESTOS DOS NUEVOS MÉTODOS ▼▼▼
+
+  // 1. MÉTODO PRINCIPAL PARA EL REPORTE POR META
+  async generateReportByMeta(): Promise<ExcelJS.Workbook> {
+    // 1. Obtener TODOS los gastos
+    const allGastos = await this.gastoRepository.find({
+      order: { fechaDevengado: 'ASC' },
+    });
+
+    // 2. Agruparlos por 'meta'
+    const gastosPorMeta = new Map<string, Gasto[]>();
+    for (const gasto of allGastos) {
+      const meta = gasto.meta?.trim() || 'SIN_META';
+      if (!gastosPorMeta.has(meta)) {
+        gastosPorMeta.set(meta, []);
+      }
+      gastosPorMeta.get(meta)!.push(gasto);
+    }
+
+    // 3. Crear el libro de Excel
+    const workbook = new ExcelJS.Workbook();
+
+    // 4. Crear una hoja por cada meta
+    for (const [meta, gastos] of gastosPorMeta.entries()) {
+      // Sanitizar el nombre de la hoja (máx 31 chars, sin caracteres inválidos)
+      const safeSheetName = meta.replace(/[\\/*?[\]:]/g, '_').substring(0, 31);
+      this.crearHojaMeta(workbook, safeSheetName, gastos);
+    }
+
+    return workbook;
+  }
+
+  // 2. FUNCIÓN AUXILIAR PARA CREAR UNA HOJA DE "META"
+  /**
+   * Crea una hoja de cálculo con un volcado de datos de gastos.
+   */
+  private crearHojaMeta(
+    workbook: ExcelJS.Workbook,
+    sheetName: string,
+    gastos: Gasto[],
+  ): void {
+    const worksheet = workbook.addWorksheet(sheetName);
+
+    // Definir Estilos
+    const headerStyle: Partial<ExcelJS.Style> = {
+      font: { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } },
+      alignment: { vertical: 'middle', horizontal: 'center', wrapText: true },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } },
+      border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+    };
+    const cellStyle: Partial<ExcelJS.Style> = {
+      alignment: { vertical: 'middle' },
+      border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+    };
+    const wrapTextStyle: Partial<ExcelJS.Style> = {
+      ...cellStyle,
+      alignment: { ...cellStyle.alignment, wrapText: true }
+    };
+    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+
+    // Definir Cabeceras (las mismas 18 columnas que en Gasto-List)
+    const headers = [
+      'DOC','N°','SIAF','A NOMBRE DE','CONCEPTO','MONTO','ESPECIFICA',
+      'MONTO2','ESPECIFICA2','F.F.','MES','F. DEVENGADO','PROYECTO','META',
+      'CERTIFICACION VIATICO','DESTINO','F. SALIDA','F. RETORNO'
+    ];
+    
+    const headerRow = worksheet.getRow(1);
+    headerRow.values = headers;
+    headerRow.eachCell(cell => cell.style = headerStyle);
+    headerRow.height = 30;
+
+    // Añadir Filas de Datos
+    let currentRow = 2;
+    gastos.forEach(gasto => {
+      worksheet.addRow([
+        gasto.tipoDocumento, gasto.numeroDocumento, gasto.siaf,
+        gasto.aNombreDe, gasto.concepto, gasto.monto,
+        gasto.especifica, gasto.monto2, gasto.especifica2,
+        gasto.ff, gasto.mes, gasto.fechaDevengado,
+        gasto.proyecto, gasto.meta,
+        gasto.certificacionViatico, gasto.destino,
+        gasto.fechaSalida, gasto.fechaRetorno
+      ]);
+      const addedRow = worksheet.getRow(currentRow);
+      
+      // Aplicar formatos
+      addedRow.getCell(6).numFmt = moneyFormat; // Monto
+      if(gasto.monto2) {
+        addedRow.getCell(8).numFmt = moneyFormat; // Monto2
+      }
+      if (gasto.fechaDevengado) {
+        addedRow.getCell(12).value = new Date(gasto.fechaDevengado);
+        addedRow.getCell(12).numFmt = 'dd/mm/yyyy';
+      }
+      if (gasto.fechaSalida) {
+        addedRow.getCell(17).value = new Date(gasto.fechaSalida);
+        addedRow.getCell(17).numFmt = 'dd/mm/yyyy';
+      }
+      if (gasto.fechaRetorno) {
+        addedRow.getCell(18).value = new Date(gasto.fechaRetorno);
+        addedRow.getCell(18).numFmt = 'dd/mm/yyyy';
+      }
+
+      // Aplicar estilos de celda
+      addedRow.eachCell((cell, colNumber) => {
+        if (colNumber === 4 || colNumber === 5 || colNumber === 13) {
+          cell.style = wrapTextStyle; // 'A NOMBRE DE', 'CONCEPTO', 'PROYECTO'
+        } else {
+          cell.style = cellStyle;
+        }
+      });
+      
+      currentRow++;
+    });
+
+    // Definir Anchos de Columna
+    const columnWidths = [
+      { key: 'DOC', width: 10 },
+      { key: 'N°', width: 12 },
+      { key: 'SIAF', width: 12 },
+      { key: 'A NOMBRE DE', width: 35 },
+      { key: 'CONCEPTO', width: 50 },
+      { key: 'MONTO', width: 15 },
+      { key: 'ESPECIFICA', width: 15 },
+      { key: 'MONTO2', width: 15 },
+      { key: 'ESPECIFICA2', width: 15 },
+      { key: 'F.F.', width: 10 },
+      { key: 'MES', width: 10 },
+      { key: 'F. DEVENGADO', width: 15 },
+      { key: 'PROYECTO', width: 30 },
+      { key: 'META', width: 10 },
+      { key: 'CERT. VIATICO', width: 15 },
+      { key: 'DESTINO', width: 20 },
+      { key: 'F. SALIDA', width: 15 },
+      { key: 'F. RETORNO', width: 15 }
+    ];
+
+    columnWidths.forEach((col, index) => {
+      const colNum = index + 1;
+      const column = worksheet.getColumn(colNum);
+      column.width = col.width;
+      if (colNum === 2 || colNum === 3) {
+        column.numFmt = '@'; // Forzar texto para N° y SIAF
+      }
+    });
+  }
+  // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+
+  
 }

@@ -63,4 +63,29 @@ export class AppController {
     res.end();
   }
   // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+
+  // ▼▼▼ AÑADIR ESTE NUEVO ENDPOINT ▼▼▼
+  @Get('reports/by-meta')
+  async generateReportByMeta(@Res() res: Response) {
+    const workbook = await this.appService.generateReportByMeta();
+
+    // --- Preparamos la respuesta para la descarga ---
+    const fileName = `Reporte_Global_por_Meta.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${fileName}`,
+    );
+
+    // Escribimos el libro en la respuesta
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+  // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+
+  
 }
