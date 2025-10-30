@@ -1,64 +1,66 @@
+// src/app.controller.ts
+// ▼▼▼ MODIFICAR IMPORTACIONES ▼▼▼
 import { Controller, Get, Post, Body, Query, Res } from '@nestjs/common';
+// ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 import { AppService } from './app.service';
 import { Gasto } from './gasto.entity';
-import type { Response } from 'express'; // Importa 'Response' usando 'import type'
+import type { Response } from 'express';
 
 @Controller('api')
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService) {}
 
-  // --- ENDPOINTS EXISTENTES (sin cambios) ---
-  @Post('gastos')
-  create(@Body() gastoData: Partial<Gasto>): Promise<Gasto> {
-    return this.appService.create(gastoData);
+  // --- ENDPOINTS EXISTENTES (sin cambios) ---
+  @Post('gastos')
+  create(@Body() gastoData: Partial<Gasto>): Promise<Gasto> {
+    return this.appService.create(gastoData);
+  }
+
+  @Post('gastos/import')
+  createMany(@Body() gastosData: Partial<Gasto>[]): Promise<Gasto[]> {
+    return this.appService.createMany(gastosData);
   }
+  
 
-  @Post('gastos/import')
-  createMany(@Body() gastosData: Partial<Gasto>[]): Promise<Gasto[]> {
-    return this.appService.createMany(gastosData);
-  }
+  @Get('gastos')
+  findAll(): Promise<Gasto[]> {
+    return this.appService.findAll();
+  }
 
-  @Get('gastos')
-  findAll(): Promise<Gasto[]> {
-    return this.appService.findAll();
-  }
+  @Get('projects')
+  findUniqueProjects(): Promise<string[]> {
+    return this.appService.findUniqueProjects();
+  }
 
-  // --- NUEVO ENDPOINT: OBTENER LISTA DE PROYECTOS ---
-  @Get('projects')
-  findUniqueProjects(): Promise<string[]> {
-    return this.appService.findUniqueProjects();
-  }
+  // --- ENDPOINT MODIFICADO: GENERAR Y DESCARGAR REPORTE ---
+  // ▼▼▼ MODIFICACIÓN COMPLETA DE ESTE MÉTODO ▼▼▼
+  @Post('reports/generate') // <-- CAMBIADO A @Post
+  async generateReport(
+    @Body() body: { projectName: string; metadata: any }, // <-- Recibimos el body
+    @Res() res: Response,
+  ) {
+    const { projectName, metadata } = body; // <-- Extraemos los datos
 
-  // --- NUEVO ENDPOINT: GENERAR Y DESCARGAR REPORTE ---
-  @Get('reports/generate')
-  async generateReport(
-    @Query('projectName') projectName: string,
-    @Res() res: Response, // Inyectamos el objeto 'Response' de Express
-  ) {
-    if (!projectName) {
-      res.status(400).send('El nombre del proyecto es requerido');
-      return;
-    }
+    if (!projectName) {
+      res.status(400).send('El nombre del proyecto es requerido');
+      return;
+    }
 
-    const workbook = await this.appService.generateProjectReport(projectName);
+    // Pasamos los metadatos al servicio
+    const workbook = await this.appService.generateProjectReport(projectName, metadata);
 
-    // --- PREPARAMOS LA RESPUESTA PARA LA DESCARGA DEL ARCHIVO ---
-    
-    // 1. Creamos un nombre de archivo seguro
-    const fileName = `Reporte_${projectName.replace(/[^a-z0-9]/gi, '_')}.xlsx`;
-    
-    // 2. Configuramos las cabeceras HTTP
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${fileName}`,
-    );
-    
-    // 3. Escribimos el libro de Excel en la respuesta y la enviamos.
-    await workbook.xlsx.write(res);
-    res.end();
-  }
+    // --- PREPARAMOS LA RESPUESTA (sin cambios) ---
+    const fileName = `Reporte_${projectName.replace(/[^a-z0-9]/gi, '_')}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${fileName}`,
+    );
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+  // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 }
