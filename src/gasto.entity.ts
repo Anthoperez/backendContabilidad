@@ -34,7 +34,7 @@ export class Gasto {
   @Column()
   mes: string;
 
-  @Column()
+  @Column({ nullable: true })
   meta: string;
 
   @CreateDateColumn()
