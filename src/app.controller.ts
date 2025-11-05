@@ -1,6 +1,6 @@
 // src/app.controller.ts
 // ▼▼▼ MODIFICAR IMPORTACIONES ▼▼▼
-import { Controller, Get, Post, Body, Query, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Res, Param, Put, Delete } from '@nestjs/common';
 // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 import { AppService } from './app.service';
 import { Gasto } from './gasto.entity';
@@ -31,6 +31,7 @@ export class AppController {
   findUniqueProjects(): Promise<string[]> {
     return this.appService.findUniqueProjects();
   }
+
 
   // --- ENDPOINT MODIFICADO: GENERAR Y DESCARGAR REPORTE ---
   // ▼▼▼ MODIFICACIÓN COMPLETA DE ESTE MÉTODO ▼▼▼

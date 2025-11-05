@@ -81,6 +81,7 @@ export class AppService {
     return this.gastoRepository.save(nuevosGastos);
   }
 
+  
   findAll(): Promise<Gasto[]> {
     return this.gastoRepository.find();
   }
@@ -95,6 +96,7 @@ export class AppService {
     return projects.map((p) => p.proyecto).filter(Boolean);
   }
 
+  
   // --- MÉTODO PRINCIPAL DE GENERACIÓN DE REPORTES (Sin cambios) ---
   async generateProjectReport(
     projectName: string,
@@ -213,13 +215,13 @@ export class AppService {
         reporte.bienesCapital += monto;
       } else if (especifica.startsWith('2.5.')) {
         reporte.subvencion += monto;
-      } else if (especifica.startsWith('2.3.2 1.1')) {
-        // Lógica específica para Viáticos (basada en tus CSV)
-        reporte.viaticos += monto;
-      } else if (especifica.startsWith('2.3.2')) {
-        // Todo lo demás que sea 2.3.2 va a Servicios
-        reporte.servicios += monto;
-      }
+      } //else if (especifica.startsWith('2.3.2 1.1')) {
+      //   // Lógica específica para Viáticos (basada en tus CSV)
+      //   reporte.viaticos += monto;
+      // } else if (especifica.startsWith('2.3.2')) {
+      //   // Todo lo demás que sea 2.3.2 va a Servicios
+      //   reporte.servicios += monto;
+      // }
       // Nota: Aún no tengo la lógica para 'encargoInterno', así que se quedará en 0.
       // Si "Encargo Interno" tiene un código (ej. '2.3.2 1.2'), añádelo aquí.
     }
