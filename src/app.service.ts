@@ -702,172 +702,225 @@ export class AppService {
   }
 
   // --- CONSTRUCTOR DE HOJA DE REPORTE POR MES (Sin cambios) ---
+  
+
+  
   private crearHojaDeReportePorMes(
-    workbook: ExcelJS.Workbook,
-    sheetName: string,
-    data: ReporteDataMensual,
-    projectName: string,
-  ): void {
-    const worksheet = workbook.addWorksheet(sheetName);
+  workbook: ExcelJS.Workbook,
+  sheetName: string, // 'ENE', 'FEB', etc.
+  data: ReporteDataMensual, // ¡Recibe el objeto YA CLASIFICADO!
+  projectName: string,
+): void {
+  const worksheet = workbook.addWorksheet(sheetName);
 
-    // ... (Definición de Estilos) ...
-    const headerStyle: Partial<ExcelJS.Style> = {
-      font: { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } },
-      alignment: { vertical: 'middle', horizontal: 'center', wrapText: true },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } },
-      border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
-    };
-    const totalRowStyle: Partial<ExcelJS.Style> = {
-      font: { bold: true, color: { argb: 'FF000000'} },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } },
-      alignment: { horizontal: 'right' }
-    };
-    const cellStyle: Partial<ExcelJS.Style> = {
-      alignment: { vertical: 'middle' },
-      border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
-    };
-    const wrapTextStyle: Partial<ExcelJS.Style> = {
-      ...cellStyle,
-      alignment: { ...cellStyle.alignment, wrapText: true }
-    };
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
-    const boldTitleStyle: Partial<ExcelJS.Style> = {
-      font: { name: 'Arial', size: 11, bold: true }
-    };
-    
-    // ... (Encabezados de la Hoja) ...
-    worksheet.mergeCells('A1:N1');
-    worksheet.getCell('A1').value = `EJECUCIÓN DE GASTOS - ${sheetName}`;
-    worksheet.getCell('A1').font = { name: 'Arial', size: 14, bold: true };
-    worksheet.getCell('A1').alignment = { horizontal: 'center' };
-    worksheet.mergeCells('A2:N2');
-    worksheet.getCell('A2').value = projectName;
-    worksheet.getCell('A2').font = { name: 'Arial', size: 11, italic: true };
-    worksheet.getCell('A2').alignment = { horizontal: 'center' };
-    
-    let currentRow = 4;
-    let totalGeneral = 0;
+  // --- Definición de Estilos ---
+  const headerStyle: Partial<ExcelJS.Style> = {
+    font: { name: 'Arial', size: 10, bold: true, color: { argb: 'FF000000' } },
+    alignment: { vertical: 'middle', horizontal: 'center', wrapText: true },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6E0B4' } }, // Verde claro
+    border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+  };
+  const sectionTitleStyle: Partial<ExcelJS.Style> = {
+    font: { bold: true, color: { argb: 'FF000000'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }, // Azul claro
+    alignment: { horizontal: 'left', vertical: 'middle' },
+    border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+  };
+  const totalRowStyle: Partial<ExcelJS.Style> = {
+    font: { bold: true },
+    alignment: { horizontal: 'right' },
+    border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+  };
+  const totalAmountStyle: Partial<ExcelJS.Style> = {
+    ...totalRowStyle,
+    numFmt: '"S/" #,##0.00;[Red]-"S/" #,##0.00',
+    alignment: { horizontal: 'left' }, // Para que el S/ quede pegado al número
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6E0B4' } }, // Verde claro
+  };
+  const grandTotalAmountStyle: Partial<ExcelJS.Style> = {
+    ...totalAmountStyle,
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }, // Amarillo
+    font: { bold: true, size: 12 },
+  };
+  const grandTotalLabelStyle: Partial<ExcelJS.Style> = {
+    ...totalRowStyle,
+    font: { bold: true, size: 12 },
+  };
+  const cellStyle: Partial<ExcelJS.Style> = {
+    alignment: { vertical: 'middle' },
+    border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
+  };
+  const wrapTextStyle: Partial<ExcelJS.Style> = { ...cellStyle, alignment: { ...cellStyle.alignment, wrapText: true } };
+  const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+  const dateFormat = 'dd/mm/yyyy';
 
-    // ... (Función 'renderSection') ...
-    const renderSection = (title: string, gastos: Gasto[], emptyRowsToShow = 5) => {
-      worksheet.mergeCells(currentRow, 1, currentRow, 14);
-      const titleCell = worksheet.getCell(`A${currentRow}`);
-      titleCell.value = title;
-      titleCell.style = boldTitleStyle;
+  // --- Cabeceras de Columnas (las 14 columnas de tu ejemplo) ---
+  const headers = [
+    'DOC','N°','SIAF','A NOMBRE DE','CONCEPTO','MONTO','ESPECIFICA',
+    'MONTO2','ESPECIFICA2','F.F.','MES','F. DEVENGADO','PROYECTO','META'
+  ];
+  // Mapeo de claves de objeto Gasto al orden de las cabeceras
+  const headerKeys = [
+    'tipoDocumento', 'numeroDocumento', 'siaf', 'aNombreDe', 'concepto', 'monto', 'especifica',
+    'monto2', 'especifica2', 'ff', 'mes', 'fechaDevengado', 'proyecto', 'meta'
+  ];
+
+  // --- Títulos de la Hoja ---
+  let currentRow = 1;
+  worksheet.mergeCells(currentRow, 1, currentRow, headers.length);
+  worksheet.getCell(`A${currentRow}`).value = `EJECUCIÓN DE GASTOS - ${sheetName}`;
+  worksheet.getCell(`A${currentRow}`).font = { name: 'Arial', size: 14, bold: true };
+  worksheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
+  currentRow++;
+  
+  worksheet.mergeCells(currentRow, 1, currentRow, headers.length);
+  worksheet.getCell(`A${currentRow}`).value = projectName;
+  worksheet.getCell(`A${currentRow}`).font = { name: 'Arial', size: 11, italic: true };
+  worksheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
+  currentRow++;
+  currentRow++; // Dejar fila en blanco
+
+  // --- 1. Escribir las Cabeceras de Columna UNA SOLA VEZ ---
+  const headerRow = worksheet.getRow(currentRow);
+  headerRow.values = headers;
+  headerRow.eachCell((cell) => cell.style = headerStyle);
+  headerRow.height = 30;
+  currentRow++;
+
+  // --- Definir las secciones y los datos que usarán (vienen de 'data') ---
+  const sections = [
+    { title: 'Gastos Corrientes', data: data.gastosCorrientes },
+    { title: 'Subvenciones por enseñanza', data: data.subvencionesEnsenanza },
+    { title: 'Subvenciones', data: data.subvenciones },
+    { title: 'Gastos de Capital', data: data.gastosCapital }
+  ];
+
+  const filasVaciasPorDefecto = 4;
+  let totalGeneral = 0;
+  const montoColIndex = 6; // 'MONTO' es la 6ta columna
+  const monto2ColIndex = 8; // 'MONTO2' es la 8va columna
+
+  // --- 2. Iterar sobre las secciones de datos ---
+  for (const section of sections) {
+    // Escribir el título de la sección
+    worksheet.mergeCells(currentRow, 1, currentRow, headers.length);
+    const titleCell = worksheet.getCell(`A${currentRow}`);
+    titleCell.value = section.title;
+    titleCell.style = sectionTitleStyle;
+    currentRow++;
+
+    let totalSection = 0;
+    let rowsAdded = 0;
+    const startDataRow = currentRow; // Fila donde empiezan los datos/filas vacías
+
+    // Escribir los datos de la sección si existen
+    if (section.data.length > 0) {
+      section.data.forEach((gasto) => {
+        // Mapear el objeto Gasto a un array en el orden de headerKeys
+        const rowData = headerKeys.map(key => (gasto as any)[key]);
+        worksheet.addRow(rowData);
+        
+        const monto = Number(gasto.monto) || 0;
+        const monto2 = Number(gasto.monto2) || 0;
+        totalSection += monto + monto2; // Sumar ambos montos al total
+        rowsAdded++;
+        currentRow++;
+      });
+    }
+
+    // --- 3. Añadir filas vacías por defecto ---
+    const rowsToAdd = Math.max(0, filasVaciasPorDefecto - rowsAdded);
+    for (let i = 0; i < rowsToAdd; i++) {
+      // Añadir una fila vacía con el número correcto de columnas
+      worksheet.addRow(Array(headers.length).fill(null));
       currentRow++;
-      
-      const headers = ['DOC','N°','SIAF','A NOMBRE DE','CONCEPTO','MONTO','ESPECIFICA','MONTO2','ESPECIFICA2','F.F.','MES','F. DEVENGADO','PROYECTO','META'];
-      const headerRow = worksheet.getRow(currentRow);
-      headerRow.values = headers;
-      headerRow.eachCell(cell => cell.style = headerStyle);
-      headerRow.height = 30; // Aumentar altura de cabecera
-      currentRow++;
-
-      const startDataRow = currentRow;
-      let totalSection = 0;
-
-      if (gastos.length > 0) {
-        gastos.forEach(gasto => {
-          worksheet.addRow([
-            gasto.tipoDocumento, gasto.numeroDocumento, gasto.siaf,
-            gasto.aNombreDe, gasto.concepto, gasto.monto,
-            gasto.especifica, gasto.monto2, gasto.especifica2,
-            gasto.ff, gasto.mes, gasto.fechaDevengado,
-            gasto.proyecto, gasto.meta
-          ]);
-          const addedRow = worksheet.getRow(currentRow);
-          addedRow.getCell(6).numFmt = moneyFormat;
-          if(gasto.monto2) {
-            addedRow.getCell(8).numFmt = moneyFormat;
+    }
+    
+    // --- Aplicar estilos a las filas de datos y vacías ---
+    for (let i = startDataRow; i < currentRow; i++) {
+      const row = worksheet.getRow(i);
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        // Aplicar estilo de celda base
+        cell.style = cellStyle;
+        
+        // Aplicar formatos especiales
+        if (colNumber === montoColIndex || colNumber === monto2ColIndex) {
+          cell.numFmt = moneyFormat;
+        } else if (colNumber === 12) { // F. DEVENGADO
+          cell.numFmt = dateFormat;
+          // Corregir la fecha si es una cadena (viene de la BD como Fecha)
+          if (cell.value && typeof cell.value === 'string') {
+            cell.value = new Date(cell.value);
           }
-          if (gasto.fechaDevengado) {
-            addedRow.getCell(12).value = new Date(gasto.fechaDevengado);
-            addedRow.getCell(12).numFmt = 'dd/mm/yyyy';
-          }
-          totalSection += Number(gasto.monto) || 0;
-          totalSection += Number(gasto.monto2) || 0; // Incluir monto2 en el total de sección
-          currentRow++;
-        });
-      } else {
-        for(let i = 0; i < emptyRowsToShow; i++) {
-          const emptyRow = worksheet.addRow([]);
-          for(let j = 1; j <= headers.length; j++) {
-            emptyRow.getCell(j).style = cellStyle;
-          }
-          currentRow++;
+        } else if (colNumber === 4 || colNumber === 5 || colNumber === 13) { // A NOMBRE DE, CONCEPTO, PROYECTO
+          cell.style = wrapTextStyle;
+        } else if (colNumber === 2 || colNumber === 3) { // N° y SIAF
+          cell.numFmt = '@'; // Forzar texto
         }
-      }
-      
-      for(let i = startDataRow; i < currentRow; i++) {
-        const row = worksheet.getRow(i);
-        row.eachCell((cell, colNumber) => {
-          if (!cell.style || Object.keys(cell.style).length === 0) {
-            if (colNumber === 4 || colNumber === 5 || colNumber === 13) {
-              cell.style = wrapTextStyle;
-            } else {
-              cell.style = cellStyle;
-            }
-          }
-          if (colNumber === 12 && cell.value) {
-             cell.numFmt = 'dd/mm/yyyy';
-          }
-        });
-      }
+      });
+    }
 
-      const totalRow = worksheet.getRow(currentRow);
-      totalRow.getCell(5).value = `Total ${title}`;
-      totalRow.getCell(6).value = totalSection;
-      totalRow.getCell(5).style = totalRowStyle;
-      totalRow.getCell(6).style = { ...totalRowStyle, numFmt: moneyFormat, alignment: { horizontal: 'left' } };
-      
-      currentRow += 2;
-      totalGeneral += totalSection;
-    };
-
-    // ... (Llamadas a Renderizado) ...
-    renderSection('Gastos Corrientes', data.gastosCorrientes);
-    renderSection('Subvenciones por enseñanza', data.subvencionesEnsenanza);
-    renderSection('Subvenciones', data.subvenciones);
-    renderSection('Gastos de Capital', data.gastosCapital);
-
-    // ... (Fila de Total General) ...
-    const grandTotalRow = worksheet.getRow(currentRow);
-    grandTotalRow.getCell(5).value = `TOTAL GENERAL`;
-    grandTotalRow.getCell(6).value = totalGeneral;
-    grandTotalRow.getCell(5).style = totalRowStyle;
-    grandTotalRow.getCell(6).style = { ...totalRowStyle, numFmt: moneyFormat, alignment: { horizontal: 'left' } };
+    // --- 4. Escribir la fila de Total de la sección ---
+    const totalRow = worksheet.getRow(currentRow);
+    // Combinar celdas ANTES de la columna de monto
+    worksheet.mergeCells(currentRow, 1, currentRow, montoColIndex - 1); // Merge A:E
+    totalRow.getCell(1).value = `Total ${section.title}`;
     
-    // ... (Anchos de Columna) ...
-    const columnWidths = [
-      { key: 'DOC', width: 10 },
-      { key: 'N°', width: 12 },
-      { key: 'SIAF', width: 12 },
-      { key: 'A NOMBRE DE', width: 35 },
-      { key: 'CONCEPTO', width: 50 },
-      { key: 'MONTO', width: 15 },
-      { key: 'ESPECIFICA', width: 15 },
-      { key: 'MONTO2', width: 15 },
-      { key: 'ESPECIFICA2', width: 15 },
-      { key: 'F.F.', width: 10 },
-      { key: 'MES', width: 10 },
-      { key: 'F. DEVENGADO', width: 15 },
-      { key: 'PROYECTO', width: 30 },
-      { key: 'META', width: 10 }
-    ];
+    // Aplicar estilo de borde y alineación a las celdas mergeadas
+    for(let i = 1; i < montoColIndex; i++) {
+      totalRow.getCell(i).style = totalRowStyle;
+    }
 
-    columnWidths.forEach((col, index) => {
-      const colNum = index + 1;
-      const column = worksheet.getColumn(colNum);
-      column.width = col.width;
-      if (colNum === 2 || colNum === 3) {
-        column.numFmt = '@';
-      }
-      if (colNum === 12) {
-        column.numFmt = 'dd/mm/yyyy';
-      }
-    });
+    // Poner el total en la columna 'MONTO'
+    totalRow.getCell(montoColIndex).value = totalSection || null; // Columna F (MONTO)
+    totalRow.getCell(montoColIndex).style = totalAmountStyle;
+    
+    // Aplicar bordes al resto de la fila de total (para que no quede vacía)
+    for (let i = montoColIndex + 1; i <= headers.length; i++) {
+      totalRow.getCell(i).style = cellStyle;
+    }
+
+    currentRow++;
+    currentRow++; // Dejar una fila en blanco entre secciones
+    totalGeneral += totalSection;
   }
 
+  // --- 5. Escribir la fila de TOTAL GENERAL ---
+  const grandTotalRow = worksheet.getRow(currentRow);
+  worksheet.mergeCells(currentRow, 1, currentRow, montoColIndex - 1); // Merge A:E
+  grandTotalRow.getCell(1).value = `TOTAL GENERAL`;
+  
+  // Aplicar estilo a celdas mergeadas
+  for(let i = 1; i < montoColIndex; i++) {
+    grandTotalRow.getCell(i).style = grandTotalLabelStyle;
+  }
+
+  grandTotalRow.getCell(montoColIndex).value = totalGeneral || null; // Columna F (MONTO)
+  grandTotalRow.getCell(montoColIndex).style = grandTotalAmountStyle;
+  
+  // Aplicar bordes al resto de la fila
+  for (let i = montoColIndex + 1; i <= headers.length; i++) {
+    grandTotalRow.getCell(i).style = cellStyle;
+  }
+
+  // --- Ajustar Anchos de Columna (al final) ---
+  worksheet.columns = [
+    { width: 10 }, // DOC
+    { width: 12 }, // N°
+    { width: 12 }, // SIAF
+    { width: 35 }, // A NOMBRE DE
+    { width: 50 }, // CONCEPTO
+    { width: 15 }, // MONTO
+    { width: 15 }, // ESPECIFICA
+    { width: 15 }, // MONTO2
+    { width: 15 }, // ESPECIFICA2
+    { width: 10 }, // F.F.
+    { width: 10 }, // MES
+    { width: 15 }, // F. DEVENGADO
+    { width: 30 }, // PROYECTO
+    { width: 10 }  // META
+  ];
+}
   // ▼▼▼ AÑADIR ESTOS DOS NUEVOS MÉTODOS ▼▼▼
 
   // 1. MÉTODO PRINCIPAL PARA EL REPORTE POR META

@@ -64,4 +64,5 @@ export class Gasto {
 
   @Column({ nullable: true }) // <-- CORRECIÓN: Dejamos que TypeORM maneje el tipo de fecha
   fechaRetorno: Date;
+  fuenteFinanciamiento: any;
 }
