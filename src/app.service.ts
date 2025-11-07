@@ -418,16 +418,37 @@ export class AppService {
     worksheet.getCell(`A${currentRow}`).value = 'INGRESOS';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     currentRow++;
+
+    // ▼▼▼ MODIFICACIÓN AQUÍ ▼▼▼
     let currentTotalIngresos = 0;
+    // Obtenemos el año actual (ej: "2025") para filtrar
+    const currentYearString = String(new Date().getFullYear());
+    // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+
     if (metadata.ingresos && metadata.ingresos.length > 0) {
       metadata.ingresos.forEach(ingreso => {
         if (ingreso.descripcion || ingreso.monto !== null) {
+
+
+          // ▼▼▼ MODIFICACIÓN AQUÍ ▼▼▼
+          const descripcion = ingreso.descripcion || '';
+          const monto = Number(ingreso.monto) || 0;
+
+          // Lógica para sumar solo si la descripción contiene el año actual
+          // (ej: en "R.R Nº 0209-2025" o en "(05/02/2025)")
+          if (descripcion.includes(currentYearString)) {
+            currentTotalIngresos += monto;
+          }
+          // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+
+
+
           worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
-          worksheet.getCell(`A${currentRow}`).value = ingreso.descripcion || '';
+          worksheet.getCell(`A${currentRow}`).value = descripcion;
           worksheet.getCell(`I${currentRow}`).value = ingreso.monto || null;
           worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
           for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
-          currentTotalIngresos += Number(ingreso.monto) || 0;
+          
           currentRow++;
         }
       });
@@ -439,7 +460,7 @@ export class AppService {
       currentRow++;
     }
     worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL INGRESOS 2025';
+    worksheet.getCell(`A${currentRow}`).value = 'TOTAL INGRESOS ${currentYearString}';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     worksheet.getCell(`I${currentRow}`).value = currentTotalIngresos || null;
     worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
