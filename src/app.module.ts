@@ -23,8 +23,11 @@ import { Gasto } from './gasto.entity';
       extra: {
         ssl: {
           rejectUnauthorized: false
-        }
+        },
+        // Forzar IPv4, importante para algunas plataformas como Vercel
+        family: 4,
       }
+
       // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
     }),
     TypeOrmModule.forFeature([Gasto]),
