@@ -9,26 +9,13 @@ import { Gasto } from './gasto.entity';
     imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-
-      // ▼▼▼ MODIFICACIÓN AQUÍ ▼▼▼
-      // Lee la URL de la base de datos desde las variables de entorno
-      url: process.env.DATABASE_URL,
-      // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
-
+      host: '127.0.0.1',
+      port: 5432,
+      username: 'postgres', // Este es el usuario por defecto
+      password: '70707070', // <-- ¡PON AQUÍ TU CONTRASEÑA!
+      database: 'contabilidad_db',
       entities: [Gasto],
-      
-      // ▼▼▼ MUY IMPORTANTE ▼▼▼
-      synchronize: false, // Poner en 'false' para producción
-      ssl: true,
-      extra: {
-        ssl: {
-          rejectUnauthorized: false
-        },
-        // Forzar IPv4, importante para algunas plataformas como Vercel
-        family: 4,
-      }
-
-      // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+      synchronize: true, // Esto crea/actualiza la tabla automáticamente
     }),
     TypeOrmModule.forFeature([Gasto]),
   ],
