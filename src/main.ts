@@ -13,7 +13,16 @@ async function bootstrap() {
   // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
 
-  app.enableCors(); // Habilitar CORS para todas las rutas
+  // ▼▼▼ MODIFICACIÓN DE CORS ▼▼▼
+  app.enableCors({
+    origin: [
+      'http://localhost:4200', // Para tu desarrollo local
+      // Añadiremos la URL de Vercel aquí después
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  });
+  // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+  
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
