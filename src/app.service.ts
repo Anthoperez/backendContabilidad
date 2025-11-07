@@ -10,6 +10,7 @@ interface ReportMetadata {
   investigador?: string;
   rr_investigador?: string;
   fechaInicio?: string | Date;
+  fechaCulminacion?: Date;
   duracion?: string;
   presupuestoProcienciaAporteMonetario?: number | null;
   presupuestoProcienciaAporteNoMonetario?: number | null;
@@ -271,12 +272,12 @@ export class AppService {
     worksheet.columns = [
       { width: 20 }, // A: Descripción / Mes/Año
       { width: 15 }, // B
-      { width: 15 }, // C
+      { width: 20 }, // C
       { width: 15 }, // D
       { width: 15 }, // E
       { width: 15 }, // F
       { width: 15 }, // G
-      { width: 15 }, // H
+      { width: 20 }, // H
       { width: 15 }, // I: TOTAL
     ];
     // Corrección para que la descripción de ingresos sea visible
@@ -306,7 +307,7 @@ export class AppService {
     worksheet.getCell(`C${currentRow}`).border = allBorders;
     worksheet.getCell(`F${currentRow}`).value = 'Fecha de inicio:';
     worksheet.getCell(`F${currentRow}`).font = { bold: true };
-    worksheet.mergeCells(`G${currentRow}:I${currentRow}`);
+    
     const fechaInicioCell = worksheet.getCell(`G${currentRow}`);
     if (metadata.fechaInicio) {
       fechaInicioCell.value = new Date(metadata.fechaInicio);
@@ -315,6 +316,18 @@ export class AppService {
       fechaInicioCell.value = '';
     }
     fechaInicioCell.border = allBorders;
+
+    worksheet.getCell(`H${currentRow}`).value = 'Fecha de Culminacion:';
+    worksheet.getCell(`H${currentRow}`).font = { bold: true };
+    
+    const fechaCulminacionCell = worksheet.getCell(`I${currentRow}`);
+    if (metadata.fechaCulminacion) {
+      fechaCulminacionCell.value = new Date(metadata.fechaCulminacion);
+      fechaCulminacionCell.numFmt = 'dd/mm/yyyy';
+    } else {
+      fechaCulminacionCell.value = '';
+    }
+    fechaCulminacionCell.border = allBorders;
     currentRow++;
 
     // ... (Fila RR y Duración) ...
@@ -323,11 +336,12 @@ export class AppService {
     worksheet.getCell(`A${currentRow}`).border = allBorders;
     worksheet.getCell(`F${currentRow}`).value = 'Duración:';
     worksheet.getCell(`F${currentRow}`).font = { bold: true };
-    worksheet.mergeCells(`G${currentRow}:I${currentRow}`);
+    
     worksheet.getCell(`G${currentRow}`).value = metadata.duracion || '';
     worksheet.getCell(`G${currentRow}`).border = allBorders;
     currentRow++;
-    currentRow++;
+    
+    currentRow++; // Salto de línea
 
     // ... (SECCIÓN DESCRIPCIÓN DE PRESUPUESTO - Cabeceras)
     // Colocamos la DESCRIPCION DE PRESUPUESTO en la misma fila que los headers de aporte
@@ -338,13 +352,23 @@ export class AppService {
     worksheet.getCell(`C${currentRow}`).value = 'Aporte Monetaria o no monetaria (Valorizado S/)';
     worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
     worksheet.getCell(`C${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    worksheet.getCell(`C${currentRow}`).alignment = {
+      vertical: 'middle',
+      horizontal: 'center',
+      wrapText: true,
+    };
     worksheet.getCell(`E${currentRow}`).value = 'Aporte Monetario S/';
     worksheet.getCell(`E${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    worksheet.getCell(`E${currentRow}`).alignment = {
+      vertical: 'middle',
+      horizontal: 'center',
+      wrapText: true,
+    };
     worksheet.getCell(`F${currentRow}`).value = 'Aporte Total S/';
-    worksheet.mergeCells(`F${currentRow}:I${currentRow}`);
+    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
     worksheet.getCell(`F${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
     // Aplicar bordes a toda la fila de cabecera de presupuesto
-    for (let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    for (let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
 
     // ... (Fila PROCIENCIA) ...
@@ -359,8 +383,8 @@ export class AppService {
     const procienciaTotal = (metadata.presupuestoProcienciaAporteNoMonetario || 0) + (metadata.presupuestoProcienciaAporteMonetario || 0);
     worksheet.getCell(`F${currentRow}`).value = procienciaTotal || null;
     worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:I${currentRow}`);
-    for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
+    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
 
     // ... (Fila Entidad Ejecutora) ...
@@ -375,8 +399,8 @@ export class AppService {
     const ejecutoraTotal = (metadata.presupuestoEntidadEjecutoraAporteNoMonetario || 0) + (metadata.presupuestoEntidadEjecutoraAporteMonetario || 0);
     worksheet.getCell(`F${currentRow}`).value = ejecutoraTotal || null;
     worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:I${currentRow}`);
-    for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
+    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
 
     // ... (Fila Entidad Asociada) ...
@@ -391,8 +415,8 @@ export class AppService {
     const asociadaTotal = (metadata.presupuestoEntidadAsociadaAporteNoMonetario || 0) + (metadata.presupuestoEntidadAsociadaAporteMonetario || 0);
     worksheet.getCell(`F${currentRow}`).value = asociadaTotal || null;
     worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:I${currentRow}`);
-    for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
+    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
 
     // ... (Fila TOTAL PRESUPUESTO) ...
@@ -408,15 +432,18 @@ export class AppService {
     worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
     worksheet.getCell(`F${currentRow}`).value = (procienciaTotal + ejecutoraTotal + asociadaTotal) || null;
     worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:I${currentRow}`);
-    for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
+    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
     currentRow++;
 
     // ... (SECCIÓN INGRESOS) ...
+
     worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
-    worksheet.getCell(`A${currentRow}`).value = 'INGRESOS';
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
+    const ingresosHeaderCell = worksheet.getCell(`A${currentRow}`);
+    ingresosHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+    ingresosHeaderCell.value = 'INGRESOS';
+    ingresosHeaderCell.font = { bold: true };
     currentRow++;
 
     // ▼▼▼ MODIFICACIÓN AQUÍ ▼▼▼
