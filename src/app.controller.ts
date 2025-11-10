@@ -5,6 +5,7 @@ import { Controller, Get, Post, Body, Query, Res, Param, Put, Delete } from '@ne
 import { AppService } from './app.service';
 import { Gasto } from './gasto.entity';
 import type { Response } from 'express';
+import * as ExcelJS from 'exceljs'; // ¡Asegúrate de importar ExcelJS!
 
 @Controller('api')
 export class AppController {
@@ -33,38 +34,95 @@ export class AppController {
   }
 
 
-  // --- ENDPOINT MODIFICADO: GENERAR Y DESCARGAR REPORTE ---
-  // ▼▼▼ MODIFICACIÓN COMPLETA DE ESTE MÉTODO ▼▼▼
-  @Post('reports/generate') // <-- CAMBIADO A @Post
-  async generateReport(
-    @Body() body: { projectName: string; metadata: any }, // <-- Recibimos el body
-    @Res() res: Response,
-  ) {
-    const { projectName, metadata } = body; // <-- Extraemos los datos
+/**
+   * NUEVO ENDPOINT
+   * Devuelve solo la lista de proyectos CONTRATO
+   */
+  @Get('projects/contrato')
+  findContratoProjects(): Promise<string[]> {
+    return this.appService.findContratoProjects();
+  }
 
-    if (!projectName) {
-      res.status(400).send('El nombre del proyecto es requerido');
-      return;
-    }
+  /**
+   * NUEVO ENDPOINT
+   * Devuelve solo la lista de proyectos PIC
+   */
+  @Get('projects/pic')
+  findPicProjects(): Promise<string[]> {
+    return this.appService.findPicProjects();
+  }
 
-    // Pasamos los metadatos al servicio
-    const workbook = await this.appService.generateProjectReport(projectName, metadata);
 
-    // --- PREPARAMOS LA RESPUESTA (sin cambios) ---
-    const fileName = `Reporte_${projectName.replace(/[^a-z0-9]/gi, '_')}.xlsx`;
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${fileName}`,
-    );
-    await workbook.xlsx.write(res);
-    res.end();
-  }
-  // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
+// --- ENDPOINTS DE GENERACIÓN DE REPORTES (MODIFICADOS) ---
+
+  /**
+   * ENDPOINT ESPECIALIZADO
+   * Genera solo reportes de CONTRATO
+   */
+  @Post('reports/contrato')
+  async generateContratoReport(
+    @Body() body: { projectName: string; metadata: any },
+    @Res() res: Response,
+  ) {
+    const { projectName, metadata } = body;
+    if (!projectName) {
+      res.status(400).send('El nombre del proyecto es requerido');
+      return;
+    }
+
+    try {
+      const workbook = await this.appService.generateContratoReport(
+        projectName,
+        metadata,
+      );
+      
+      const safeName = projectName.replace(/[^a-z0-9]/gi, '_');
+      const fileName = `Reporte_Contrato_${safeName}.xlsx`;
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error al generar reporte CONTRATO:', error);
+      res.status(500).send(`Error al generar el reporte: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * NUEVO ENDPOINT
+   * Genera solo reportes de GRUPO PIC
+   */
+  @Post('reports/pic')
+  async generatePicReport(
+    @Body() body: { projectName: string; metadata: any },
+    @Res() res: Response,
+  ) {
+    const { projectName, metadata } = body;
+    if (!projectName) {
+      res.status(400).send('El nombre del proyecto es requerido');
+      return;
+    }
+
+    try {
+      const workbook = await this.appService.generatePicReportGroup(
+        projectName,
+        metadata,
+      );
+      
+      const safeName = projectName.replace(/[^a-z0-9]/gi, '_');
+      const fileName = `Reporte_PIC_${safeName}.xlsx`;
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error al generar reporte PIC:', error);
+      res.status(500).send(`Error al generar el reporte: ${error.message || error}`);
+    }
+  }
   // ▼▼▼ AÑADIR ESTE NUEVO ENDPOINT ▼▼▼
   @Get('reports/by-meta')
   async generateReportByMeta(@Res() res: Response) {
