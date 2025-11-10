@@ -1,7 +1,7 @@
 // src/app.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Gasto } from './gasto.entity';
 import * as ExcelJS from 'exceljs';
 
@@ -52,6 +52,29 @@ interface ReporteDataConsolidado {
 }
 // ▲▲▲ FIN CORRECCIÓN ERROR 3 (Interfaz) ▲▲▲
 
+// --- INTERFACES ESPECIALIZADAS PARA PIC ---
+// Define las categorías de gasto del reporte PIC
+type PicCategory =
+  | 'BIENES CORRIENTES' // 2.3.1
+  | 'BIENES CAPITAL' // 2.6
+  | 'SERVICIOS' // 2.3.2 (general)
+  | 'SUBVENCION' // 2.5
+  | 'VIATICOS' // 2.3.2 1.1
+  | 'CUENTA ENCARGO' // 2.3.2 1.2
+  | 'OTROS'; // Fallback
+
+// Para el resumen mensual del consolidado PIC
+interface PicMonthSummary {
+  'BIENES CORRIENTES': number;
+  'BIENES CAPITAL': number;
+  SERVICIOS: number;
+  SUBVENCION: number;
+  VIATICOS: number;
+  'CUENTA ENCARGO': number;
+  TOTAL: number;
+}
+
+
 @Injectable()
 export class AppService {
   constructor(
@@ -97,9 +120,42 @@ export class AppService {
     return projects.map((p) => p.proyecto).filter(Boolean);
   }
 
+
+  /**
+   * NUEVA FUNCIÓN
+   * Obtiene solo los proyectos que son CONTRATO.
+   */
+  async findContratoProjects(): Promise<string[]> {
+    const projects = await this.gastoRepository
+      .createQueryBuilder('gasto')
+      .select('gasto.proyecto', 'proyecto')
+      .where('gasto.proyecto LIKE :query', { query: '%CONTRATO%' })
+      .distinct(true)
+      .orderBy('proyecto', 'ASC')
+      .getRawMany();
+    return projects.map((p) => p.proyecto).filter(Boolean);
+  }
+
+  /**
+   * NUEVA FUNCIÓN
+   * Obtiene solo los proyectos que son PIC.
+   */
+  async findPicProjects(): Promise<string[]> {
+    const projects = await this.gastoRepository
+      .createQueryBuilder('gasto')
+      .select('gasto.proyecto', 'proyecto')
+      .where('gasto.proyecto LIKE :query', { query: '%PIC%' })
+      .distinct(true)
+      .orderBy('proyecto', 'ASC')
+      .getRawMany();
+    return projects.map((p) => p.proyecto).filter(Boolean);
+  }
+  // --- FIN DE MÉTODOS DE GESTIÓN DE DATOS ---
+
+
   
   // --- MÉTODO PRINCIPAL DE GENERACIÓN DE REPORTES (Sin cambios) ---
-  async generateProjectReport(
+  async generateContratoReport(
     projectName: string,
     metadata: ReportMetadata = {},
   ): Promise<ExcelJS.Workbook> {
@@ -174,7 +230,7 @@ export class AppService {
     };
 
     for (const gasto of gastos) {
-      const especifica = gasto.especifica?.trim() || '';
+      const especifica = gasto.especifica?.trim().replace(/\s+/g, ' ') || '' || '';
 
       if (especifica.startsWith('2.3.')) {
         reporte.gastosCorrientes.push(gasto);
@@ -903,24 +959,464 @@ export class AppService {
     grandTotalRow.getCell(i).style = cellStyle;
   }
 
-  // --- Ajustar Anchos de Columna (al final) ---
-  worksheet.columns = [
-    { width: 10 }, // DOC
-    { width: 12 }, // N°
-    { width: 12 }, // SIAF
-    { width: 35 }, // A NOMBRE DE
-    { width: 50 }, // CONCEPTO
-    { width: 15 }, // MONTO
-    { width: 15 }, // ESPECIFICA
-    { width: 15 }, // MONTO2
-    { width: 15 }, // ESPECIFICA2
-    { width: 10 }, // F.F.
-    { width: 10 }, // MES
-    { width: 15 }, // F. DEVENGADO
-    { width: 30 }, // PROYECTO
-    { width: 10 }  // META
-  ];
+    // --- Ajustar Anchos de Columna (al final) ---
+    worksheet.columns = [
+      { width: 10 }, // DOC
+      { width: 12 }, // N°
+      { width: 12 }, // SIAF
+      { width: 35 }, // A NOMBRE DE
+      { width: 50 }, // CONCEPTO
+      { width: 15 }, // MONTO
+      { width: 15 }, // ESPECIFICA
+      { width: 15 }, // MONTO2
+      { width: 15 }, // ESPECIFICA2
+      { width: 10 }, // F.F.
+      { width: 10 }, // MES
+      { width: 15 }, // F. DEVENGADO
+      { width: 30 }, // PROYECTO
+      { width: 10 }  // META
+    ];
 }
+
+
+// =============================================================
+  // --- SECCIÓN 2: NUEVA LÓGICA DE REPORTES "PIC" ---
+  // =============================================================
+
+  /**
+   * NUEVA FUNCIÓN PRINCIPAL
+   * Genera el reporte para un GRUPO de proyectos tipo PIC.
+   */
+  async generatePicReportGroup(
+    baseProjectName: string, // El proyecto que seleccionó el usuario (ej. "PIC 01-2023...")
+    metadata: ReportMetadata, // Los metadatos globales
+  ): Promise<ExcelJS.Workbook> {
+    
+    // 1. Identificar el grupo de proyectos (ej. "MOD. 01 - VII CONV.")
+    // Lógica mejorada: El grupo es todo lo que NO es "PIC XX-XXXX"
+    const groupIdentifier = baseProjectName.replace(/^PIC\s*\d+-\d{4}\s*/i, '').trim();
+
+    if (!groupIdentifier) {
+      throw new Error(
+        `No se pudo identificar el GRUPO del proyecto PIC: ${baseProjectName}.`,
+      );
+    }
+    
+    // 2. Obtener TODOS los gastos de TODOS los proyectos de ese grupo
+    // Buscamos proyectos que terminen con ese identificador
+    const allGastosInGroup = await this.gastoRepository.find({
+      where: { 
+        proyecto: Like(`%${groupIdentifier}`),
+      },
+      order: { proyecto: 'ASC', fechaDevengado: 'ASC' },
+    });
+
+    if (allGastosInGroup.length === 0) {
+      throw new Error(
+        `No se encontraron gastos para el grupo: ${groupIdentifier}`,
+      );
+    }
+
+    // 3. Agrupar los gastos por el nombre completo del proyecto
+    const gastosPorProyecto = new Map<string, Gasto[]>();
+    for (const gasto of allGastosInGroup) {
+      const projectName = gasto.proyecto; // El nombre completo
+      // Asegurar que exista el arreglo para este proyecto antes de usar push
+      let lista = gastosPorProyecto.get(projectName);
+      if (!lista) {
+        lista = [];
+        gastosPorProyecto.set(projectName, lista);
+      }
+      lista.push(gasto);
+    }
+
+    // 4. Crear el libro de Excel
+    const workbook = new ExcelJS.Workbook();
+
+    // 5. Crear la Hoja "CONSOLIDADO" (Formato PIC)
+    // Pasamos el Map, los metadatos globales (para Opción A) y el nombre del grupo
+    this.crearHojaPicConsolidado(
+      workbook,
+      gastosPorProyecto,
+      metadata, // Metadatos globales
+      groupIdentifier,
+    );
+
+    // 6. Crear las Hojas de Detalle (una por cada proyecto PIC)
+    for (const [projectName, projectGastos] of gastosPorProyecto.entries()) {
+      // Extraer un nombre corto para la hoja (ej. "PIC 1-2023")
+      const shortNameMatch = projectName.match(/PIC\s*\d+-\d{4}/i);
+      // Fallback por si no encuentra el patrón
+      let sheetName = shortNameMatch ? shortNameMatch[0] : projectName.substring(0, 10);
+      
+      sheetName = sheetName.replace(/[\/\?\*\[\]\:]/g, '-').substring(0, 31);
+
+      this.crearHojaPicDetalle(
+        workbook,
+        sheetName,
+        projectName, // Pasa el nombre completo para el título
+        projectGastos,
+        metadata, // Metadatos globales (para Opción A)
+      );
+    }
+
+    return workbook;
+  }
+
+  /**
+   * NUEVO HELPER (Solo para PIC)
+   * Clasifica un gasto según las categorías del reporte PIC.
+   */
+  private clasificarGastoPic(especifica: string): PicCategory {
+    if (!especifica) return 'OTROS';
+    
+    // Normalizar la 'especifica' para eliminar espacios duplicados
+    const spec = especifica.trim().replace(/\s+/g, ' ');
+
+    // El orden es importante: de más específico a más general.
+    // if (spec.startsWith('2.3.2 1.1')) return 'VIATICOS';
+    // if (spec.startsWith('2.3.2 1.2')) return 'CUENTA ENCARGO';
+    // if (spec.startsWith('2.3.2')) return 'SERVICIOS';
+    if (spec.startsWith('2.3.')) return 'BIENES CORRIENTES';
+    if (spec.startsWith('2.6.')) return 'BIENES CAPITAL';
+    if (spec.startsWith('2.5.')) return 'SUBVENCION';
+
+    return 'OTROS';
+  }
+
+  /**
+   * NUEVO HELPER (Solo para PIC)
+   * Devuelve un objeto de resumen PIC vacío.
+   */
+  private getEmptyPicSummary(): PicMonthSummary {
+    return {
+      'BIENES CORRIENTES': 0,
+      'BIENES CAPITAL': 0,
+      SERVICIOS: 0,
+      SUBVENCION: 0,
+      VIATICOS: 0,
+      'CUENTA ENCARGO': 0,
+      TOTAL: 0,
+    };
+  }
+
+  /**
+   * NUEVO HELPER (Solo para PIC)
+   * Crea la hoja "CONSOLIDADO" del reporte PIC (resumen de resúmenes).
+   */
+  private crearHojaPicConsolidado(
+    workbook: ExcelJS.Workbook,
+    gastosPorProyecto: Map<string, Gasto[]>,
+    metadata: ReportMetadata, // Metadatos globales (para Opción A)
+    groupIdentifier: string,
+  ): void {
+    const worksheet = workbook.addWorksheet('CONSOLIDADO');
+    let currentRow = 1;
+
+    // Estilos
+    const titleStyle: Partial<ExcelJS.Style> = { font: { bold: true, size: 12 } };
+    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const allBorders: Partial<ExcelJS.Borders> = {
+      top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+    };
+    const headerStyle: Partial<ExcelJS.Style> = { 
+      font: { bold: true }, 
+      border: allBorders, 
+      alignment: { horizontal: 'center', vertical: 'middle', wrapText: true } 
+    };
+
+    // Título global
+    worksheet.mergeCells(`A${currentRow}:J${currentRow}`);
+    worksheet.getCell(`A${currentRow}`).value = `EJECUCIÓN DE GASTOS DE PROYECTOS - ${groupIdentifier}`;
+    worksheet.getCell(`A${currentRow}`).style = titleStyle;
+    currentRow += 3; // Espacio
+
+    const monthNames = [
+      'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+      'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE',
+    ];
+    
+    // Las categorías en el orden del consolidado PIC
+    const categories: (keyof PicMonthSummary)[] = [
+      'BIENES CORRIENTES',
+      'BIENES CAPITAL',
+      'SERVICIOS',
+      'SUBVENCION',
+      'VIATICOS',
+      'CUENTA ENCARGO',
+      'TOTAL',
+    ];
+    
+    // Anchos de columna para el consolidado PIC
+    worksheet.columns = [
+      { width: 12 }, // MES
+      { width: 14 }, // PRESUPUESTO
+      { width: 14 }, // BIENES CORRIENTES
+      { width: 14 }, // BIENES CAPITAL
+      { width: 14 }, // SERVICIOS
+      { width: 14 }, // SUBVENCION
+      { width: 14 }, // VIATICOS
+      { width: 14 }, // CUENTA ENCARGO
+      { width: 15 }, // TOTAL
+    ];
+
+    // Iterar por cada proyecto en el grupo
+    for (const [projectName, projectGastos] of gastosPorProyecto.entries()) {
+      // --- Título del Proyecto ---
+      worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
+      worksheet.getCell(`A${currentRow}`).value = projectName;
+      worksheet.getCell(`A${currentRow}`).style = titleStyle;
+      currentRow++;
+
+      // --- Metadata del Proyecto (Opción A: Dejar en blanco) ---
+      worksheet.getCell(`B${currentRow}`).value = `Investigador:`; // Dejado en blanco
+      currentRow++;
+      worksheet.getCell(`B${currentRow}`).value = `Duración:`; // Dejado en blanco
+      currentRow++;
+
+      // --- Cabeceras de la tabla resumen ---
+      const headers = ['MES', 'PRESUPUESTO', 'EJECUCIÓN DE GASTOS', '', '', '', '', '', 'TOTAL'];
+      const subHeaders = ['', '', ...categories.slice(0, -1), '']; // Quita 'TOTAL' y añade ''
+      
+      let headerRow = worksheet.getRow(currentRow);
+      headerRow.values = headers;
+      worksheet.mergeCells(currentRow, 3, currentRow, 8); // Merge "EJECUCIÓN DE GASTOS" (C a H)
+      headerRow.eachCell((cell) => cell.style = headerStyle);
+      currentRow++;
+      
+      headerRow = worksheet.getRow(currentRow);
+      headerRow.values = subHeaders;
+      worksheet.getRow(currentRow - 1).getCell(9).value = 'TOTAL'; // Pone TOTAL en la celda superior
+      worksheet.mergeCells(currentRow - 1, 9, currentRow, 9); // Merge vertical de 'TOTAL'
+      headerRow.getCell(1).value = 'MES'; // Pone MES en la celda inferior
+      worksheet.mergeCells(currentRow - 1, 1, currentRow, 1); // Merge vertical de 'MES'
+      headerRow.getCell(2).value = 'PRESUPUESTO'; // Pone PRESUPUESTO en la celda inferior
+      worksheet.mergeCells(currentRow - 1, 2, currentRow, 2); // Merge vertical de 'PRESUPUESTO'
+      
+      headerRow.eachCell((cell) => cell.style = headerStyle);
+      currentRow++;
+      
+      const projectTotals: PicMonthSummary = this.getEmptyPicSummary();
+
+      // --- Resumen por Mes ---
+      for (const month of monthNames) {
+        const monthShort = month.substring(0, 3);
+        const gastosDelMes = projectGastos.filter(
+          (g) => g.mes && g.mes.toUpperCase() === month,
+        );
+
+        // Clasificar y sumar los gastos del mes
+        const monthSummary = this.getEmptyPicSummary();
+        for (const gasto of gastosDelMes) {
+          const category = this.clasificarGastoPic(gasto.especifica);
+          const totalGasto = (Number(gasto.monto) || 0) + (Number(gasto.monto2) || 0);
+
+          if (monthSummary[category] !== undefined) {
+            (monthSummary as any)[category] += totalGasto;
+          }
+          monthSummary['TOTAL'] += totalGasto;
+        }
+        
+        // Añadir la fila de datos del mes
+        const rowData = [
+          `${monthShort} - 2025`, // Asumimos 2025, podrías hacerlo dinámico
+          null, // Presupuesto (dejado en blanco)
+          ...categories.map(cat => monthSummary[cat] || null) // Mapear valores
+        ];
+        const row = worksheet.addRow(rowData);
+        
+        // Aplicar estilos a la fila de datos
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          cell.border = allBorders;
+          if (colNumber > 2) {
+             cell.numFmt = moneyFormat;
+             if (!cell.value) cell.value = 0; // Poner 0 en celdas vacías
+          }
+        });
+        
+        // Acumular totales del proyecto
+        categories.forEach(cat => (projectTotals as any)[cat] += monthSummary[cat]);
+        currentRow++;
+      }
+      
+      // --- Fila de Total del Proyecto ---
+      const totalRowData = [
+        'TOTAL',
+        null,
+        ...categories.map(cat => projectTotals[cat] || null)
+      ];
+      const totalRow = worksheet.addRow(totalRowData);
+      totalRow.font = { bold: true };
+      totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          cell.border = allBorders;
+          if (colNumber > 2) {
+             cell.numFmt = moneyFormat;
+             if (!cell.value) cell.value = 0;
+          }
+      });
+      currentRow++;
+      
+      currentRow += 2; // Espacio entre proyectos
+    }
+  }
+
+  /**
+   * NUEVO HELPER (Solo para PIC)
+   * Crea la hoja de DETALLE para un proyecto PIC individual.
+   * Esta lógica coincide con tu descripción.
+   */
+  private crearHojaPicDetalle(
+    workbook: ExcelJS.Workbook,
+    sheetName: string,
+    fullProjectName: string,
+    projectGastos: Gasto[],
+    metadata: ReportMetadata, // Metadatos globales (para Opción A)
+  ): void {
+    const worksheet = workbook.addWorksheet(sheetName);
+    let currentRow = 1;
+
+    // Estilos
+    const titleStyle: Partial<ExcelJS.Style> = { font: { bold: true, size: 12 } };
+    const categoryTitleStyle: Partial<ExcelJS.Style> = { font: { bold: true, size: 11 }, fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } } }; // Azul claro
+    const headerStyle: Partial<ExcelJS.Style> = { font: { bold: true }, border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }, alignment: { horizontal: 'center' } };
+    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const textFormat = '@';
+    const monthTotalStyle: Partial<ExcelJS.Font> = { bold: true };
+
+    // --- Títulos ---
+    worksheet.mergeCells(`A${currentRow}:K${currentRow}`); // Ajustado a 10 columnas
+    worksheet.getCell(`A${currentRow}`).value = fullProjectName;
+    worksheet.getCell(`A${currentRow}`).style = titleStyle;
+    currentRow += 2;
+    // Opción A: Dejar metadatos específicos en blanco
+    worksheet.getCell(`B${currentRow}`).value = `Investigador:`;
+    currentRow += 2;
+
+    // --- Definir Cabeceras de Detalle y Categorías ---
+    const detailHeaders = [
+      'DOC', 'N°', 'SIAF', 'A NOMBRE DE', 'CONCEPTO', 'MES', 
+      'IMPORTE', // monto
+      'ESPECIFICA', // especifica
+      'IMPORTE1', // monto2
+      'ESPECIFICA' // especifica2 (col 10)
+    ];
+    // Mapeo de claves de objeto Gasto al orden de las cabeceras
+    const detailKeys = [
+      'tipoDocumento', 'numeroDocumento', 'siaf', 'aNombreDe', 'concepto', 'mes',
+      'monto', 'especifica', 'monto2', 'especifica2'
+    ];
+    // Categorías en el orden del detalle PIC
+    const categories: PicCategory[] = [
+      'BIENES CORRIENTES', 
+      'SERVICIOS', 
+      'VIATICOS', 
+      'CUENTA ENCARGO', 
+      'BIENES CAPITAL', 
+      'SUBVENCION',
+      'OTROS' // Un fallback
+    ];
+    const monthNames = [
+      'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+      'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE',
+    ];
+    
+    // Columnas de Importe (basado en los 'detailHeaders')
+    const importeColIndex = 7;
+    const importe1ColIndex = 9;
+
+    // --- Iterar por Categoría ---
+    for (const category of categories) {
+      worksheet.mergeCells(`A${currentRow}:J${currentRow}`);
+      worksheet.getCell(`A${currentRow}`).value = category;
+      worksheet.getCell(`A${currentRow}`).style = categoryTitleStyle;
+      currentRow++;
+
+      // Escribir cabeceras de detalle
+      const headerRow = worksheet.getRow(currentRow);
+      headerRow.values = detailHeaders;
+      headerRow.eachCell(cell => cell.style = headerStyle);
+      currentRow++;
+
+      let totalCategory = 0;
+      let totalCategoryMonto2 = 0;
+
+      // --- Iterar por Mes ---
+      for (const month of monthNames) {
+        let totalMonth = 0;
+        let totalMonthMonto2 = 0;
+
+        const gastosDelMes = projectGastos.filter(
+          (g) =>
+            g.mes &&
+            g.mes.toUpperCase() === month &&
+            this.clasificarGastoPic(g.especifica) === category,
+        );
+
+        if (gastosDelMes.length > 0) {
+          for (const gasto of gastosDelMes) {
+            const rowData = detailKeys.map(key => (gasto as any)[key]);
+            const row = worksheet.addRow(rowData);
+            
+            // Aplicar formatos
+            row.getCell(importeColIndex).numFmt = moneyFormat;  // IMPORTE
+            row.getCell(importe1ColIndex).numFmt = moneyFormat; // IMPORTE1
+            row.getCell(2).numFmt = textFormat; // N°
+            row.getCell(3).numFmt = textFormat; // SIAF
+            
+            const monto = (Number(gasto.monto) || 0);
+            const monto2 = (Number(gasto.monto2) || 0);
+            totalMonth += monto;
+            totalMonthMonto2 += monto2;
+            currentRow++;
+          }
+        }
+        
+        // Fila de Total del Mes (siempre se muestra)
+         const totalMonthRow = worksheet.getRow(currentRow);
+         worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
+         totalMonthRow.getCell(1).value = `TOTAL ${month}`;
+         totalMonthRow.getCell(importeColIndex).value = totalMonth || 0;
+         totalMonthRow.getCell(importeColIndex).numFmt = moneyFormat;
+         totalMonthRow.getCell(importe1ColIndex).value = totalMonthMonto2 || 0;
+         totalMonthRow.getCell(importe1ColIndex).numFmt = moneyFormat;
+         totalMonthRow.font = monthTotalStyle;
+         currentRow++;
+         
+         totalCategory += totalMonth;
+         totalCategoryMonto2 += totalMonthMonto2;
+      }
+      
+      // Fila de Total de Categoría
+      const totalCategoryRow = worksheet.getRow(currentRow);
+      worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
+      totalCategoryRow.getCell(1).value = `TOTAL ${category}`;
+      totalCategoryRow.getCell(importeColIndex).value = totalCategory || 0;
+      totalCategoryRow.getCell(importeColIndex).numFmt = moneyFormat;
+      totalCategoryRow.getCell(importe1ColIndex).value = totalCategoryMonto2 || 0;
+      totalCategoryRow.getCell(importe1ColIndex).numFmt = moneyFormat;
+      totalCategoryRow.font = { bold: true, size: 11 };
+      currentRow += 2; // Espacio
+    }
+    
+    // Ajustar anchos de columna
+    worksheet.columns = [
+      { width: 10 }, // DOC
+      { width: 10 }, // N°
+      { width: 10 }, // SIAF
+      { width: 30 }, // A NOMBRE DE
+      { width: 45 }, // CONCEPTO
+      { width: 10 }, // MES
+      { width: 14 }, // IMPORTE
+      { width: 14 }, // ESPECIFICA
+      { width: 14 }, // IMPORTE1
+      { width: 14 }, // ESPECIFICA2 (col 10)
+    ];
+  }
+
+
+
+
+
   // ▼▼▼ AÑADIR ESTOS DOS NUEVOS MÉTODOS ▼▼▼
 
   // 1. MÉTODO PRINCIPAL PARA EL REPORTE POR META
