@@ -60,8 +60,6 @@ type PicCategory =
   | 'SERVICIOS' // 2.3.2 (general)
   | 'SUBVENCION' // 2.5
   | 'VIATICOS' // 2.3.2 1.1
-  | 'CUENTA ENCARGO' // 2.3.2 1.2
-  | 'OTROS'; // Fallback
 
 // Para el resumen mensual del consolidado PIC
 interface PicMonthSummary {
@@ -543,7 +541,7 @@ export class AppService {
       currentRow++;
     }
     worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL INGRESOS ${currentYearString}';
+    worksheet.getCell(`A${currentRow}`).value = 'TOTAL INGRESOS 2025';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     worksheet.getCell(`I${currentRow}`).value = currentTotalIngresos || null;
     worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
@@ -1067,8 +1065,8 @@ export class AppService {
    * NUEVO HELPER (Solo para PIC)
    * Clasifica un gasto según las categorías del reporte PIC.
    */
-  private clasificarGastoPic(especifica: string): PicCategory {
-    if (!especifica) return 'OTROS';
+  private clasificarGastoPic(especifica: string): PicCategory | null {
+    if (!especifica) return null;
     
     // Normalizar la 'especifica' para eliminar espacios duplicados
     const spec = especifica.trim().replace(/\s+/g, ' ');
@@ -1081,7 +1079,7 @@ export class AppService {
     if (spec.startsWith('2.6.')) return 'BIENES CAPITAL';
     if (spec.startsWith('2.5.')) return 'SUBVENCION';
 
-    return 'OTROS';
+    return null;
   }
 
   /**
@@ -1209,6 +1207,10 @@ export class AppService {
         const monthSummary = this.getEmptyPicSummary();
         for (const gasto of gastosDelMes) {
           const category = this.clasificarGastoPic(gasto.especifica);
+          // Si la categoría es null (o sea, 'OTROS'), no lo sumes a nada.
+          if (category === null) {
+            continue;
+          }
           const totalGasto = (Number(gasto.monto) || 0) + (Number(gasto.monto2) || 0);
 
           if (monthSummary[category] !== undefined) {
@@ -1308,12 +1310,11 @@ export class AppService {
     // Categorías en el orden del detalle PIC
     const categories: PicCategory[] = [
       'BIENES CORRIENTES', 
-      'SERVICIOS', 
-      'VIATICOS', 
-      'CUENTA ENCARGO', 
       'BIENES CAPITAL', 
+      'SERVICIOS', 
       'SUBVENCION',
-      'OTROS' // Un fallback
+      'VIATICOS',
+
     ];
     const monthNames = [
       'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
