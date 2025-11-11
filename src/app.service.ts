@@ -1381,12 +1381,14 @@ export class AppService {
          totalMonthRow.getCell(importe1ColIndex).value = totalMonthMonto2 || 0;
          totalMonthRow.getCell(importe1ColIndex).numFmt = moneyFormat;
          totalMonthRow.font = monthTotalStyle;
+         totalMonthRow.alignment = { horizontal: 'center' };
          currentRow++;
          
          totalCategory += totalMonth;
          totalCategoryMonto2 += totalMonthMonto2;
       }
       
+      currentRow++; // Espacio
       // Fila de Total de Categoría
       const totalCategoryRow = worksheet.getRow(currentRow);
       worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
@@ -1396,6 +1398,7 @@ export class AppService {
       totalCategoryRow.getCell(importe1ColIndex).value = totalCategoryMonto2 || 0;
       totalCategoryRow.getCell(importe1ColIndex).numFmt = moneyFormat;
       totalCategoryRow.font = { bold: true, size: 11 };
+      totalCategoryRow.alignment = { horizontal: 'center' };
       currentRow += 2; // Espacio
     }
     
