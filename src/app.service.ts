@@ -5,6 +5,18 @@ import { Repository, Like } from 'typeorm';
 import { Gasto } from './gasto.entity';
 import * as ExcelJS from 'exceljs';
 
+
+interface GastoAnoAnterior {
+  year: number;
+  bienesCorrientes: number | null;
+  bienesCapital: number | null;
+  servicios: number | null;
+  subvencion: number | null;
+  viaticos: number | null;
+  encargoInterno: number | null;
+}
+
+
 // ▼▼▼ INTERFAZ ReportMetadata AMPLIADA (Sin cambios desde la última vez) ▼▼▼
 interface ReportMetadata {
   investigador?: string;
@@ -19,15 +31,7 @@ interface ReportMetadata {
   presupuestoEntidadAsociadaAporteMonetario?: number | null;
   presupuestoEntidadAsociadaAporteNoMonetario?: number | null;
   ingresos?: { descripcion: string; monto: number | null }[];
-  gastosAnoAnterior?: {
-    year: number;
-    bienesCorrientes: number | null;
-    bienesCapital: number | null;
-    servicios: number | null;
-    subvencion: number | null;
-    viaticos: number | null;
-    encargoInterno: number | null;
-  };
+  gastosAnosAnteriores?: GastoAnoAnterior[];
 }
 // ▲▲▲ FIN ReportMetadata AMPLIADA ▲▲▲
 
@@ -572,9 +576,27 @@ export class AppService {
     }
     currentRow++;
 
+
+    // 1. Inicializamos los totales acumulados de AÑOS ANTERIORES
+    const previousYearsGastosTotals = {
+      bienesCorrientes: 0,
+      bienesCapital: 0,
+      servicios: 0,
+      subvencion: 0,
+      viaticos: 0,
+      encargoInterno: 0,
+      total: 0,
+    };
+
+    // 2. Verificamos si el array existe y tiene datos
+    if (metadata.gastosAnosAnteriores && metadata.gastosAnosAnteriores.length > 0) {
+      
+      // 3. Iteramos sobre CADA año anterior proporcionado
+      metadata.gastosAnosAnteriores.forEach(gastoAno => {
+
     // ▼▼▼ CORRECCIÓN ERROR 2 ▼▼▼
     // Proporcionamos un objeto default completo si metadata.gastosAnoAnterior es nulo
-    const gastosAnoAnterior = metadata.gastosAnoAnterior || {
+    const gastosAnoAnterior = gastoAno || {
       year: new Date().getFullYear() - 1,
       bienesCorrientes: null,
       bienesCapital: null,
@@ -608,24 +630,52 @@ export class AppService {
       if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
       cell.border = allBorders;
     });
-    currentRow++;
 
-    // ... (Fila TOTAL GASTOS (solo año anterior)) ...
+    // 5. Acumulamos los totales de TODOS los años anteriores
+        previousYearsGastosTotals.bienesCorrientes += (gastosAnoAnterior.bienesCorrientes || 0);
+        previousYearsGastosTotals.bienesCapital += (gastosAnoAnterior.bienesCapital || 0);
+        previousYearsGastosTotals.servicios += (gastosAnoAnterior.servicios || 0);
+        previousYearsGastosTotals.subvencion += (gastosAnoAnterior.subvencion || 0);
+        previousYearsGastosTotals.viaticos += (gastosAnoAnterior.viaticos || 0);
+        previousYearsGastosTotals.encargoInterno += (gastosAnoAnterior.encargoInterno || 0);
+        previousYearsGastosTotals.total += totalAnoAnterior;
+
+    currentRow++;
+  });
+}else {
+  // (Comportamiento anterior si el array está vacío: imprime una fila por defecto)
+      worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+      worksheet.getCell(`A${currentRow}`).value = `AÑO ${new Date().getFullYear() - 1}`;
+      // ... (el resto de las celdas quedan vacías/nulas)
+      worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell) => {
+        cell.border = allBorders;
+      });
+      currentRow++;
+    }
+
+    // ▼▼▼ CÓDIGO A AÑADIR (AQUÍ) ▼▼▼
+    // --- Fila TOTAL GASTOS (resumen de TODOS los años anteriores) ---
     worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS';
+    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS (Años Anteriores)';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.getCell(`C${currentRow}`).value = gastosAnoAnterior.bienesCorrientes || null;
-    worksheet.getCell(`D${currentRow}`).value = gastosAnoAnterior.bienesCapital || null;
-    worksheet.getCell(`E${currentRow}`).value = gastosAnoAnterior.servicios || null;
-    worksheet.getCell(`F${currentRow}`).value = gastosAnoAnterior.subvencion || null;
-    worksheet.getCell(`G${currentRow}`).value = gastosAnoAnterior.viaticos || null;
-    worksheet.getCell(`H${currentRow}`).value = gastosAnoAnterior.encargoInterno || null;
-    worksheet.getCell(`I${currentRow}`).value = totalAnoAnterior || null;
+    worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes || null;
+    worksheet.getCell(`D${currentRow}`).value = previousYearsGastosTotals.bienesCapital || null;
+    worksheet.getCell(`E${currentRow}`).value = previousYearsGastosTotals.servicios || null;
+    worksheet.getCell(`F${currentRow}`).value = previousYearsGastosTotals.subvencion || null;
+    worksheet.getCell(`G${currentRow}`).value = previousYearsGastosTotals.viaticos || null;
+    worksheet.getCell(`H${currentRow}`).value = previousYearsGastosTotals.encargoInterno || null;
+    worksheet.getCell(`I${currentRow}`).value = previousYearsGastosTotals.total || null;
+    
     worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell, colNumber) => {
       if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
+      if (colNumber >= 3 && !cell.value) cell.value = 0; // Poner 0 si es nulo
       cell.border = allBorders;
     });
+    worksheet.getRow(currentRow).font = { bold: true };
     currentRow++;
+    // ▲▲▲ FIN DEL CÓDIGO A AÑADIR ▲▲▲
+    
+
     currentRow++;
 
     // ... (SEGUNDA SECCIÓN EJECUCIÓN DE GASTOS (MENSUAL AÑO ACTUAL) - Cabeceras) ...
@@ -726,13 +776,13 @@ export class AppService {
     worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.getCell(`C${currentRow}`).value = (gastosAnoAnterior.bienesCorrientes || 0) + currentYearGastosTotals.bienesCorrientes;
-    worksheet.getCell(`D${currentRow}`).value = (gastosAnoAnterior.bienesCapital || 0) + currentYearGastosTotals.bienesCapital;
-    worksheet.getCell(`E${currentRow}`).value = (gastosAnoAnterior.servicios || 0) + currentYearGastosTotals.servicios;
-    worksheet.getCell(`F${currentRow}`).value = (gastosAnoAnterior.subvencion || 0) + currentYearGastosTotals.subvencion;
-    worksheet.getCell(`G${currentRow}`).value = (gastosAnoAnterior.viaticos || 0) + currentYearGastosTotals.viaticos;
-    worksheet.getCell(`H${currentRow}`).value = (gastosAnoAnterior.encargoInterno || 0) + currentYearGastosTotals.encargoInterno;
-    worksheet.getCell(`I${currentRow}`).value = totalAnoAnterior + currentYearGastosTotals.totalMes;
+    worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes + currentYearGastosTotals.bienesCorrientes;
+    worksheet.getCell(`D${currentRow}`).value = previousYearsGastosTotals.bienesCapital + currentYearGastosTotals.bienesCapital;
+    worksheet.getCell(`E${currentRow}`).value = previousYearsGastosTotals.servicios + currentYearGastosTotals.servicios;
+    worksheet.getCell(`F${currentRow}`).value = previousYearsGastosTotals.subvencion + currentYearGastosTotals.subvencion;
+    worksheet.getCell(`G${currentRow}`).value = previousYearsGastosTotals.viaticos + currentYearGastosTotals.viaticos;
+    worksheet.getCell(`H${currentRow}`).value = previousYearsGastosTotals.encargoInterno + currentYearGastosTotals.encargoInterno;
+    worksheet.getCell(`I${currentRow}`).value = previousYearsGastosTotals.total + currentYearGastosTotals.totalMes;
     worksheet.getRow(currentRow).font = { bold: true };
     worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell, colNumber) => {
       if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
