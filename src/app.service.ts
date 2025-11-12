@@ -347,13 +347,12 @@ private clasificarGastosParaConsolidado(
     worksheet.columns = [
       { width: 20 }, // A: Descripción / Mes/Año
       { width: 15 }, // B
-      { width: 20 }, // C
+      { width: 15 }, // C
       { width: 15 }, // D
       { width: 15 }, // E
       { width: 15 }, // F
       { width: 15 }, // G
-      { width: 20 }, // H
-      { width: 15 }, // I: TOTAL
+      { width: 15 }, // H
     ];
     // Corrección para que la descripción de ingresos sea visible
     worksheet.getColumn('A').alignment = { wrapText: true, vertical: 'middle' };
@@ -372,19 +371,19 @@ private clasificarGastosParaConsolidado(
     worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = projectName;
     worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 11 };
-    currentRow++;
+    currentRow+=2;
 
     // ... (Fila Investigador y Fecha Inicio) ...
     worksheet.getCell(`A${currentRow}`).value = 'INVESTIGADOR:';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.mergeCells(`C${currentRow}:E${currentRow}`);
-    worksheet.getCell(`C${currentRow}`).value = metadata.investigador || '';
-    worksheet.getCell(`C${currentRow}`).border = allBorders;
-    worksheet.getCell(`F${currentRow}`).value = 'Fecha de inicio:';
-    worksheet.getCell(`F${currentRow}`).font = { bold: true };
+    worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+    worksheet.getCell(`B${currentRow}`).value = metadata.investigador || '';
+    worksheet.getCell(`B${currentRow}`).border = allBorders;
+    worksheet.getCell(`E${currentRow}`).value = 'Fecha de inicio:';
+    worksheet.getCell(`E${currentRow}`).font = { bold: true };
     
-    const fechaInicioCell = worksheet.getCell(`G${currentRow}`);
-    worksheet.getCell(`G${currentRow}`).value = metadata.fechaInicio || '';
+    const fechaInicioCell = worksheet.getCell(`F${currentRow}`);
+    worksheet.getCell(`F${currentRow}`).value = metadata.fechaInicio || '';
     // if (metadata.fechaInicio) {
     //   fechaInicioCell.value = new Date(metadata.fechaInicio);
     //   fechaInicioCell.numFmt = 'dd/mm/yyyy';
@@ -393,10 +392,10 @@ private clasificarGastosParaConsolidado(
     // }
     fechaInicioCell.border = allBorders;
 
-    worksheet.getCell(`H${currentRow}`).value = 'Fecha de Culminacion:';
-    worksheet.getCell(`H${currentRow}`).font = { bold: true };
+    worksheet.getCell(`G${currentRow}`).value = 'Fecha de Culminacion:';
+    worksheet.getCell(`G${currentRow}`).font = { bold: true };
     
-    const fechaCulminacionCell = worksheet.getCell(`I${currentRow}`);
+    const fechaCulminacionCell = worksheet.getCell(`H${currentRow}`);
     if (metadata.fechaCulminacion) {
       fechaCulminacionCell.value = new Date(metadata.fechaCulminacion);
       fechaCulminacionCell.numFmt = 'dd/mm/yyyy';
@@ -407,14 +406,14 @@ private clasificarGastosParaConsolidado(
     currentRow++;
 
     // ... (Fila RR y Duración) ...
-    worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
+    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = metadata.rr_investigador || '';
     worksheet.getCell(`A${currentRow}`).border = allBorders;
-    worksheet.getCell(`F${currentRow}`).value = 'Duración:';
-    worksheet.getCell(`F${currentRow}`).font = { bold: true };
+    worksheet.getCell(`E${currentRow}`).value = 'Duración:';
+    worksheet.getCell(`E${currentRow}`).font = { bold: true };
     
-    worksheet.getCell(`G${currentRow}`).value = metadata.duracion || '';
-    worksheet.getCell(`G${currentRow}`).border = allBorders;
+    worksheet.getCell(`F${currentRow}`).value = metadata.duracion || '';
+    worksheet.getCell(`F${currentRow}`).border = allBorders;
     currentRow++;
     
     currentRow++; // Salto de línea
@@ -426,16 +425,14 @@ private clasificarGastosParaConsolidado(
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
     worksheet.getCell(`C${currentRow}`).value = 'Aporte No Monetario (Valorizado S/)'; // CAMBIADO
-    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
     worksheet.getCell(`C${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
     worksheet.getCell(`C${currentRow}`).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-    worksheet.getCell(`E${currentRow}`).value = 'Aporte Monetario S/';
+    worksheet.getCell(`D${currentRow}`).value = 'Aporte Monetario S/';
+    worksheet.getCell(`D${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    worksheet.getCell(`D${currentRow}`).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    worksheet.getCell(`E${currentRow}`).value = 'Aporte Total S/';
     worksheet.getCell(`E${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-    worksheet.getCell(`E${currentRow}`).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-    worksheet.getCell(`F${currentRow}`).value = 'Aporte Total S/';
-    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-    worksheet.getCell(`F${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-    for (let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    for (let col = 1; col <= 6; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
 
     // Variables para sumar el total
@@ -457,16 +454,15 @@ private clasificarGastosParaConsolidado(
         
         worksheet.getCell(`C${currentRow}`).value = aporteNoMonetario || null;
         worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
-        worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
         
-        worksheet.getCell(`E${currentRow}`).value = aporteMonetario || null;
+        worksheet.getCell(`D${currentRow}`).value = aporteMonetario || null;
+        worksheet.getCell(`D${currentRow}`).numFmt = moneyFormat;
+        
+        worksheet.getCell(`E${currentRow}`).value = totalFila || null;
         worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
+        
         
-        worksheet.getCell(`F${currentRow}`).value = totalFila || null;
-        worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-        worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-        
-        for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+        for(let col = 1; col <= 6; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
 
         // Acumular totales
         totalAporteNoMonetario += aporteNoMonetario;
@@ -478,7 +474,7 @@ private clasificarGastosParaConsolidado(
     } else {
       // Fila vacía si no hay datos (o puedes poner 3 filas vacías)
       worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-      for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+      for(let col = 1; col <= 6; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
       currentRow++;
     }
 
@@ -489,15 +485,15 @@ private clasificarGastosParaConsolidado(
     
     worksheet.getCell(`C${currentRow}`).value = totalAporteNoMonetario || null;
     worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
+    
     
-    worksheet.getCell(`E${currentRow}`).value = totalAporteMonetario || null;
+    worksheet.getCell(`D${currentRow}`).value = totalAporteMonetario || null;
+    worksheet.getCell(`D${currentRow}`).numFmt = moneyFormat;
+    
+    worksheet.getCell(`E${currentRow}`).value = totalPresupuestoGeneral || null;
     worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
-    
-    worksheet.getCell(`F${currentRow}`).value = totalPresupuestoGeneral || null;
-    worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    
+    for(let col = 1; col <= 6; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
     currentRow++; // Salto de línea
 
@@ -505,11 +501,11 @@ private clasificarGastosParaConsolidado(
 
     // ... (SECCIÓN INGRESOS) ...
 
-    worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
+    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
     const ingresosHeaderCell = worksheet.getCell(`A${currentRow}`);
-    ingresosHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+    ingresosHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'fff2cc' } };
     ingresosHeaderCell.value = 'INGRESOS';
-    ingresosHeaderCell.font = { bold: true };
+    ingresosHeaderCell.font = { bold: true, size:16  };
     currentRow++;
 
     // ▼▼▼ MODIFICACIÓN AQUÍ ▼▼▼
@@ -536,50 +532,52 @@ private clasificarGastosParaConsolidado(
 
 
 
-          worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+          worksheet.mergeCells(`A${currentRow}:G${currentRow}`);
           worksheet.getCell(`A${currentRow}`).value = descripcion;
-          worksheet.getCell(`I${currentRow}`).value = ingreso.monto || null;
-          worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
-          for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+          worksheet.getCell(`H${currentRow}`).value = ingreso.monto || null;
+          worksheet.getCell(`H${currentRow}`).numFmt = moneyFormat;
+          for(let col = 1; col <= 8; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
           
           currentRow++;
         }
       });
     } else {
-      worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+      worksheet.mergeCells(`A${currentRow}:G${currentRow}`);
       worksheet.getCell(`A${currentRow}`).value = '';
-      worksheet.getCell(`I${currentRow}`).value = null;
-      for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+      worksheet.getCell(`H${currentRow}`).value = null;
+      for(let col = 1; col <= 8; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
       currentRow++;
     }
-    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+    worksheet.mergeCells(`A${currentRow}:G${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = 'TOTAL INGRESOS 2025';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.getCell(`I${currentRow}`).value = currentTotalIngresos || null;
-    worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
-    worksheet.getCell(`I${currentRow}`).font = { bold: true };
-    for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    worksheet.getCell(`H${currentRow}`).value = currentTotalIngresos || null;
+    worksheet.getCell(`H${currentRow}`).numFmt = moneyFormat;
+    worksheet.getCell(`H${currentRow}`).font = { bold: true };
+    for(let col = 1; col <= 8; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
     currentRow++;
 
     // ... (PRIMERA SECCIÓN EJECUCIÓN DE GASTOS - Cabeceras) ...
-    worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
+    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = 'EJECUCIÓN DE GASTOS';
     worksheet.getCell(`A${currentRow}`).style = boldStyle;
+    worksheet.getCell(`A${currentRow}`).style.font = { size: 16, bold: true };
+    worksheet.getCell(`A${currentRow}`).style.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'fff2cc' } };
     currentRow++;
-    const headers = ['MES/AÑO', '', 'BIENES CORRIENTES', 'BIENES CAPITAL', 'SERVICIOS', 'SUBVENCION', 'VIATICOS', 'ENCARGO INTERNO', 'TOTAL'];
+    const headers = ['MES/AÑO', 'BIENES CORRIENTES', 'BIENES CAPITAL', 'SERVICIOS', 'SUBVENCION', 'VIATICOS', 'ENCARGO INTERNO', 'TOTAL'];
     worksheet.getCell(`A${currentRow}`).value = headers[0];
+    worksheet.getCell(`B${currentRow}`).value = headers[1];
     worksheet.getCell(`C${currentRow}`).value = headers[2];
     worksheet.getCell(`D${currentRow}`).value = headers[3];
     worksheet.getCell(`E${currentRow}`).value = headers[4];
     worksheet.getCell(`F${currentRow}`).value = headers[5];
     worksheet.getCell(`G${currentRow}`).value = headers[6];
     worksheet.getCell(`H${currentRow}`).value = headers[7];
-    worksheet.getCell(`I${currentRow}`).value = headers[8];
     worksheet.getRow(currentRow).font = { bold: true };
-    for(let col = 1; col <= 9; col++) {
-      if(col === 1) worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-      worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).alignment = centerAlign;
+    for(let col = 1; col <= 8; col++) {
+      if(col === 1) worksheet.getCell(`A${currentRow}`);
+      worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
       worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     }
     currentRow++;
@@ -624,18 +622,18 @@ private clasificarGastosParaConsolidado(
       (gastosAnoAnterior.viaticos || 0) +
       (gastosAnoAnterior.encargoInterno || 0);
 
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+    
     worksheet.getCell(`A${currentRow}`).value = `AÑO ${yearAnterior}`;
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.getCell(`C${currentRow}`).value = gastosAnoAnterior.bienesCorrientes || null;
-    worksheet.getCell(`D${currentRow}`).value = gastosAnoAnterior.bienesCapital || null;
-    worksheet.getCell(`E${currentRow}`).value = gastosAnoAnterior.servicios || null;
-    worksheet.getCell(`F${currentRow}`).value = gastosAnoAnterior.subvencion || null;
-    worksheet.getCell(`G${currentRow}`).value = gastosAnoAnterior.viaticos || null;
-    worksheet.getCell(`H${currentRow}`).value = gastosAnoAnterior.encargoInterno || null;
-    worksheet.getCell(`I${currentRow}`).value = totalAnoAnterior || null;
+    worksheet.getCell(`B${currentRow}`).value = gastosAnoAnterior.bienesCorrientes || null;
+    worksheet.getCell(`C${currentRow}`).value = gastosAnoAnterior.bienesCapital || null;
+    worksheet.getCell(`D${currentRow}`).value = gastosAnoAnterior.servicios || null;
+    worksheet.getCell(`E${currentRow}`).value = gastosAnoAnterior.subvencion || null;
+    worksheet.getCell(`F${currentRow}`).value = gastosAnoAnterior.viaticos || null;
+    worksheet.getCell(`G${currentRow}`).value = gastosAnoAnterior.encargoInterno || null;
+    worksheet.getCell(`H${currentRow}`).value = totalAnoAnterior || null;
     worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
+      if (colNumber >= 3 && colNumber <= 8) cell.numFmt = moneyFormat;
       cell.border = allBorders;
     });
 
@@ -652,7 +650,7 @@ private clasificarGastosParaConsolidado(
   });
 }else {
   // (Comportamiento anterior si el array está vacío: imprime una fila por defecto)
-      worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+      
       worksheet.getCell(`A${currentRow}`).value = `AÑO ${new Date().getFullYear() - 1}`;
       // ... (el resto de las celdas quedan vacías/nulas)
       worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell) => {
@@ -664,20 +662,20 @@ private clasificarGastosParaConsolidado(
     currentRow++;
     // ▼▼▼ CÓDIGO A AÑADIR (AQUÍ) ▼▼▼
     // --- Fila TOTAL GASTOS (resumen de TODOS los años anteriores) ---
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+    
     worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS 2025';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes || null;
-    worksheet.getCell(`D${currentRow}`).value = previousYearsGastosTotals.bienesCapital || null;
-    worksheet.getCell(`E${currentRow}`).value = previousYearsGastosTotals.servicios || null;
-    worksheet.getCell(`F${currentRow}`).value = previousYearsGastosTotals.subvencion || null;
-    worksheet.getCell(`G${currentRow}`).value = previousYearsGastosTotals.viaticos || null;
-    worksheet.getCell(`H${currentRow}`).value = previousYearsGastosTotals.encargoInterno || null;
-    worksheet.getCell(`I${currentRow}`).value = previousYearsGastosTotals.total || null;
+    worksheet.getCell(`B${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes || null;
+    worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCapital || null;
+    worksheet.getCell(`D${currentRow}`).value = previousYearsGastosTotals.servicios || null;
+    worksheet.getCell(`E${currentRow}`).value = previousYearsGastosTotals.subvencion || null;
+    worksheet.getCell(`F${currentRow}`).value = previousYearsGastosTotals.viaticos || null;
+    worksheet.getCell(`G${currentRow}`).value = previousYearsGastosTotals.encargoInterno || null;
+    worksheet.getCell(`H${currentRow}`).value = previousYearsGastosTotals.total || null;
     
     worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
-      if (colNumber >= 3 && !cell.value) cell.value = 0; // Poner 0 si es nulo
+      if (colNumber >= 2 && colNumber <= 8) cell.numFmt = moneyFormat;
+      if (colNumber >= 2 && !cell.value) cell.value = 0; // Poner 0 si es nulo
       cell.border = allBorders;
     });
     worksheet.getRow(currentRow).font = { bold: true };
@@ -688,22 +686,24 @@ private clasificarGastosParaConsolidado(
     currentRow++;
 
     // ... (SEGUNDA SECCIÓN EJECUCIÓN DE GASTOS (MENSUAL AÑO ACTUAL) - Cabeceras) ...
-    worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
+    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = 'EJECUCIÓN DE GASTOS';
     worksheet.getCell(`A${currentRow}`).style = boldStyle;
+    worksheet.getCell(`A${currentRow}`).style.font = { size: 16, bold: true };
+    worksheet.getCell(`A${currentRow}`).style.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'fff2cc' } };
     currentRow++;
     worksheet.getCell(`A${currentRow}`).value = headers[0];
+    worksheet.getCell(`B${currentRow}`).value = headers[1];
     worksheet.getCell(`C${currentRow}`).value = headers[2];
     worksheet.getCell(`D${currentRow}`).value = headers[3];
     worksheet.getCell(`E${currentRow}`).value = headers[4];
     worksheet.getCell(`F${currentRow}`).value = headers[5];
     worksheet.getCell(`G${currentRow}`).value = headers[6];
     worksheet.getCell(`H${currentRow}`).value = headers[7];
-    worksheet.getCell(`I${currentRow}`).value = headers[8];
     worksheet.getRow(currentRow).font = { bold: true };
-    for(let col = 1; col <= 9; col++) {
-      if(col === 1) worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-      worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).alignment = centerAlign;
+    for(let col = 1; col <= 8; col++) {
+      if(col === 1) worksheet.getCell(`A${currentRow}`);
+      worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
       worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     }
     currentRow++;
@@ -733,20 +733,20 @@ private clasificarGastosParaConsolidado(
       const data = this.clasificarGastosParaConsolidado(gastosDelMes); // <-- USA LA FUNCIÓN CORREGIDA
 
       const row = worksheet.getRow(currentRow);
-      worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+      
       worksheet.getCell(`A${currentRow}`).value = `${monthShort} - ${new Date().getFullYear()}`;
       // ▼▼▼ CORRECCIÓN ERROR 3 (Uso) ▼▼▼
-      worksheet.getCell(`C${currentRow}`).value = data.bienesCorrientes || null;
-      worksheet.getCell(`D${currentRow}`).value = data.bienesCapital || null;
-      worksheet.getCell(`E${currentRow}`).value = data.servicios || null;
-      worksheet.getCell(`F${currentRow}`).value = data.subvencion || null;
-      worksheet.getCell(`G${currentRow}`).value = data.viaticos || null; // <-- CAMPO AÑADIDO
-      worksheet.getCell(`H${currentRow}`).value = data.encargoInterno || null; // <-- CAMPO AÑADIDO
-      worksheet.getCell(`I${currentRow}`).value = data.totalMes || null; // <-- CAMPO AÑADIDO
+      worksheet.getCell(`B${currentRow}`).value = data.bienesCorrientes || null;
+      worksheet.getCell(`C${currentRow}`).value = data.bienesCapital || null;
+      worksheet.getCell(`D${currentRow}`).value = data.servicios || null;
+      worksheet.getCell(`E${currentRow}`).value = data.subvencion || null;
+      worksheet.getCell(`F${currentRow}`).value = data.viaticos || null; // <-- CAMPO AÑADIDO
+      worksheet.getCell(`G${currentRow}`).value = data.encargoInterno || null; // <-- CAMPO AÑADIDO
+      worksheet.getCell(`H${currentRow}`).value = data.totalMes || null; // <-- CAMPO AÑADIDO
       // ▲▲▲ FIN CORRECCIÓN ERROR 3 (Uso) ▲▲▲
 
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
+        if (colNumber >= 2 && colNumber <= 8) cell.numFmt = moneyFormat;
         cell.border = allBorders;
         if (colNumber === 1) cell.alignment = { horizontal: 'left', vertical: 'middle' };
       });
@@ -764,52 +764,53 @@ private clasificarGastosParaConsolidado(
     });
 
     // ... (Fila TOTALES DEL AÑO ACTUAL (2025)) ...
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+    
     worksheet.getCell(`A${currentRow}`).value = `AÑO ${new Date().getFullYear()}`;
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.getCell(`C${currentRow}`).value = currentYearGastosTotals.bienesCorrientes || null;
-    worksheet.getCell(`D${currentRow}`).value = currentYearGastosTotals.bienesCapital || null;
-    worksheet.getCell(`E${currentRow}`).value = currentYearGastosTotals.servicios || null;
-    worksheet.getCell(`F${currentRow}`).value = currentYearGastosTotals.subvencion || null;
-    worksheet.getCell(`G${currentRow}`).value = currentYearGastosTotals.viaticos || null;
-    worksheet.getCell(`H${currentRow}`).value = currentYearGastosTotals.encargoInterno || null;
-    worksheet.getCell(`I${currentRow}`).value = currentYearGastosTotals.totalMes || null;
+    worksheet.getCell(`B${currentRow}`).value = currentYearGastosTotals.bienesCorrientes || null;
+    worksheet.getCell(`C${currentRow}`).value = currentYearGastosTotals.bienesCapital || null;
+    worksheet.getCell(`D${currentRow}`).value = currentYearGastosTotals.servicios || null;
+    worksheet.getCell(`E${currentRow}`).value = currentYearGastosTotals.subvencion || null;
+    worksheet.getCell(`F${currentRow}`).value = currentYearGastosTotals.viaticos || null;
+    worksheet.getCell(`G${currentRow}`).value = currentYearGastosTotals.encargoInterno || null;
+    worksheet.getCell(`H${currentRow}`).value = currentYearGastosTotals.totalMes || null;
     worksheet.getRow(currentRow).font = { bold: true };
     worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
+      if (colNumber >= 2 && colNumber <= 8) cell.numFmt = moneyFormat;
       cell.border = allBorders;
     });
     currentRow+=2;
 
     // ... (Fila TOTAL GASTOS (GLOBAL)) ...
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+    
     worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS';
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes + currentYearGastosTotals.bienesCorrientes;
-    worksheet.getCell(`D${currentRow}`).value = previousYearsGastosTotals.bienesCapital + currentYearGastosTotals.bienesCapital;
-    worksheet.getCell(`E${currentRow}`).value = previousYearsGastosTotals.servicios + currentYearGastosTotals.servicios;
-    worksheet.getCell(`F${currentRow}`).value = previousYearsGastosTotals.subvencion + currentYearGastosTotals.subvencion;
-    worksheet.getCell(`G${currentRow}`).value = previousYearsGastosTotals.viaticos + currentYearGastosTotals.viaticos;
-    worksheet.getCell(`H${currentRow}`).value = previousYearsGastosTotals.encargoInterno + currentYearGastosTotals.encargoInterno;
-    worksheet.getCell(`I${currentRow}`).value = previousYearsGastosTotals.total + currentYearGastosTotals.totalMes;
+    worksheet.getCell(`A${currentRow}`).font = { bold: true};
+    worksheet.getCell(`B${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes + currentYearGastosTotals.bienesCorrientes;
+    worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCapital + currentYearGastosTotals.bienesCapital;
+    worksheet.getCell(`D${currentRow}`).value = previousYearsGastosTotals.servicios + currentYearGastosTotals.servicios;
+    worksheet.getCell(`E${currentRow}`).value = previousYearsGastosTotals.subvencion + currentYearGastosTotals.subvencion;
+    worksheet.getCell(`F${currentRow}`).value = previousYearsGastosTotals.viaticos + currentYearGastosTotals.viaticos;
+    worksheet.getCell(`G${currentRow}`).value = previousYearsGastosTotals.encargoInterno + currentYearGastosTotals.encargoInterno;
+    worksheet.getCell(`H${currentRow}`).value = previousYearsGastosTotals.total + currentYearGastosTotals.totalMes;
     worksheet.getRow(currentRow).font = { bold: true };
     worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell, colNumber) => {
-      if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
+      if (colNumber >= 2 && colNumber <= 8) cell.numFmt = moneyFormat;
       (cell.numFmt = moneyFormat), (cell.border = allBorders);
       // Poner 0 si es nulo
-      if (colNumber >= 3 && !cell.value) cell.value = 0;
+      if (colNumber >= 2 && !cell.value) cell.value = 0;
     });
     currentRow++;
 
     // ... (SALDO AL AÑO) ...
-    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+    worksheet.mergeCells(`A${currentRow}:G${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = `SALDO AL AÑO ${new Date().getFullYear()}`;
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
+    worksheet.getCell(`A${currentRow}`).style.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'c9c9c9' } };
+    worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 14 };
     const saldo = currentTotalIngresos - (currentYearGastosTotals.totalMes);
-    worksheet.getCell(`I${currentRow}`).value = saldo;
-    worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
-    worksheet.getCell(`I${currentRow}`).font = { bold: true };
-    for(let col = 1; col <= 9; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    worksheet.getCell(`H${currentRow}`).value = saldo;
+    worksheet.getCell(`H${currentRow}`).numFmt = moneyFormat;
+    worksheet.getCell(`H${currentRow}`).font = { bold: true };
+    for(let col = 1; col <= 8; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
     currentRow++;
   }
 
