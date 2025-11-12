@@ -96,22 +96,21 @@ export class AppController {
    */
   @Post('reports/pic')
   async generatePicReport(
-    @Body() body: { projectName: string; metadata: any },
+    @Body() body: { modalityName: string }, // <-- AHORA ESPERA 'modalityName'
     @Res() res: Response,
   ) {
-    const { projectName, metadata } = body;
-    if (!projectName) {
+    const { modalityName } = body;
+    if (!modalityName) {
       res.status(400).send('El nombre del proyecto es requerido');
       return;
     }
 
     try {
       const workbook = await this.appService.generatePicReportGroup(
-        projectName,
-        metadata,
+        modalityName,
       );
       
-      const safeName = projectName.replace(/[^a-z0-9]/gi, '_');
+      const safeName = modalityName.replace(/[^a-z0-9]/gi, '_');
       const fileName = `Reporte_PIC_${safeName}.xlsx`;
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

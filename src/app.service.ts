@@ -5,6 +5,67 @@ import { Repository, Like } from 'typeorm';
 import { Gasto } from './gasto.entity';
 import * as ExcelJS from 'exceljs';
 
+const mapaModalidadesPIC = new Map<string, string[]>();
+
+// --- PIC 2021 ---
+mapaModalidadesPIC.set('PIC 2021 - MOD. 01 (Básica y Aplicada)', [
+  'PIC 01-2021 MOD. 01 - V CONV.',
+  'PIC 02-2021 MOD. 01 - V CONV.',
+  'PIC 03-2021 MOD. 01 - V CONV.',
+  'PIC 04-2021 MOD. 01 - V CONV.',
+  'PIC 05-2021 MOD. 01 - V CONV.'
+]);
+mapaModalidadesPIC.set('PIC 2021 - MOD. 02 (Tesis Pregrado)', [
+  'PIC 01-2021 MOD. 02 - V CONV.A',
+  'PIC 02-2021 MOD. 02 - V CONV.',
+  'PIC 03-2021 MOD. 02 - V CONV.',
+  'PIC 04-2021 MOD. 02 - V CONV.',
+  'PIC 05-2021 MOD. 02 - V CONV.',
+  'PIC 06-2021 MOD. 02 - V CONV.'
+]);
+// ... (Aquí puedes añadir las demás modalidades de 2021 (Mod. 03, 04) si lo deseas) ...
+
+// --- PIC 2022 ---
+mapaModalidadesPIC.set('PIC 2022 - MOD. 01 (Aplicada)', [
+  'PIC 01-2022 MOD. 01 - VI CONV.',
+  'PIC 02-2022 MOD. 01 - VI CONV.',
+  'PIC 03-2022 MOD. 01 - VI CONV.',
+  'PIC 04-2022 MOD. 01 - VI CONV.'
+]);
+mapaModalidadesPIC.set('PIC 2022 - MOD. 02 (Consolidado y Emergente)', [
+  'PIC 01-2022 MOD. 02 - VI CONV.',
+  'PIC 02-2022 MOD. 02 - VI CONV.',
+  'PIC 03-2022 MOD. 02 - VI CONV.',
+  'PIC 04-2022 MOD. 02 - VI CONV.'
+]);
+mapaModalidadesPIC.set('PIC 2022 - EMBLEMATICO', [
+  'PIC 01-2023 - EMBLEMATICO',
+  'PIC 02-2023 - EMBLEMATICO',
+  'PIC 03-2023 -EMBLEMATICO '
+]);
+
+// --- PIC 2023 ---
+mapaModalidadesPIC.set('PIC 2023 - MOD. 01 (Científica)', [
+  'PIC 01-2023 MOD. 01 - VII CONV.',
+  'PIC 02-2023 MOD. 01 - VII CONV.',
+  'PIC 03-2023 MOD. 01 - VII CONV.',
+  'PIC 04-2023 MOD. 01 - VII CONV.',
+  'PIC 05-2023 MOD. 01 - VII CONV.',
+  'PIC 06-2023 MOD. 01 - VII CONV.',
+  'PIC 07-2023 MOD. 01 - VII CONV.',
+  'PIC 08-2023 MOD. 01 - VII CONV.'
+]);
+mapaModalidadesPIC.set('PIC 2023 - MOD. 03 (Emblemática)', [
+  'PIC 01-2023 MOD. 03 - VII CONV.',
+  'PIC 02-2023 MOD. 03 - VII CONV.',
+  'PIC 03-2023 MOD. 03 - VII CONV.',
+  'PIC 04-2023 MOD. 03 - VII CONV.',
+  'PIC 05-2023 MOD. 03 - VII CONV.',
+  'PIC 06-2023 MOD. 03 - VII CONV.',
+  'PIC 07-2023 MOD. 03 - VII CONV.',
+]);
+
+
 
 interface GastoAnoAnterior {
   year: number;
@@ -31,6 +92,7 @@ interface ReportMetadata {
   }[];
   ingresos?: { descripcion: string; monto: number | null }[];
   gastosAnosAnteriores?: GastoAnoAnterior[];
+  presupuestoTotalPic?: number | null;
 }
 // ▲▲▲ FIN ReportMetadata AMPLIADA ▲▲▲
 
@@ -297,7 +359,7 @@ private clasificarGastosParaConsolidado(
         reporte.subvencion += montoTotal;
       }
       // Regla 5: Bienes Corrientes (O/C + especifica 2.3.1)
-      else if (doc === 'O/C' && especifica.startsWith('2.3.1')) {
+      else if (doc === 'O/C' && especifica.startsWith('2.3.')) {
         reporte.bienesCorrientes += montoTotal;
       }
       // Regla 6: Bienes Capital (solo especifica 2.6)
@@ -314,6 +376,60 @@ private clasificarGastosParaConsolidado(
     return reporte;
   }
   // ▲▲▲ FIN CORRECCIÓN ERROR 3 (Implementación) ▲▲▲
+
+  private clasificarGastosParaPicConsolidado(
+    gastos: Gasto[],
+  ): PicMonthSummary {
+    // Inicializa la estructura de resumen que espera el reporte PIC
+    const reporte: PicMonthSummary = {
+      'BIENES CORRIENTES': 0,
+      'BIENES CAPITAL': 0,
+      SERVICIOS: 0,
+      SUBVENCION: 0,
+      VIATICOS: 0,
+      'CUENTA ENCARGO': 0, // Equivalente a 'encargoInterno'
+      TOTAL: 0,
+    };
+
+    for (const gasto of gastos) {
+      // 1. Obtenemos el monto total (monto + monto2)
+      const montoTotal = (Number(gasto.monto) || 0) + (Number(gasto.monto2) || 0);
+
+      if (montoTotal === 0) continue;
+
+      // 2. Obtenemos los campos para las reglas
+      const doc = gasto.tipoDocumento?.trim().toUpperCase() || '';
+      const especifica = gasto.especifica?.trim().replace(/\s+/g, ' ') || '';
+
+      // 3. Acumulamos el total del mes
+      reporte.TOTAL += montoTotal;
+
+      // 4. Aplicamos las reglas de negocio (las mismas de Contrato)
+      // y las mapeamos a las claves del reporte PIC
+      
+      if (doc === 'P/V' || doc === 'C/S') {
+        reporte.VIATICOS += montoTotal;
+      }
+      else if (doc === 'R.DGA') {
+        reporte['CUENTA ENCARGO'] += montoTotal; // Mapeado a 'CUENTA ENCARGO'
+      }
+      else if (doc === 'O/S') {
+        reporte.SERVICIOS += montoTotal;
+      }
+      else if (doc === 'P/S') {
+        reporte.SUBVENCION += montoTotal;
+      }
+      else if (doc === 'O/C' && especifica.startsWith('2.3.')) {
+        reporte['BIENES CORRIENTES'] += montoTotal; // Mapeado a 'BIENES CORRIENTES'
+      }
+      else if (especifica.startsWith('2.6.')) {
+        reporte['BIENES CAPITAL'] += montoTotal; // Mapeado a 'BIENES CAPITAL'
+      }
+    }
+    
+    return reporte;
+  }
+
 
   // ▲▲▲ FIN CORRECCIÓN ERROR 1 ▲▲▲
 
@@ -663,7 +779,7 @@ private clasificarGastosParaConsolidado(
     // ▼▼▼ CÓDIGO A AÑADIR (AQUÍ) ▼▼▼
     // --- Fila TOTAL GASTOS (resumen de TODOS los años anteriores) ---
     
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS 2025';
+    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     worksheet.getCell(`B${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes || null;
     worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCapital || null;
@@ -783,7 +899,7 @@ private clasificarGastosParaConsolidado(
 
     // ... (Fila TOTAL GASTOS (GLOBAL)) ...
     
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS';
+    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS - 2025';
     worksheet.getCell(`A${currentRow}`).font = { bold: true};
     worksheet.getCell(`B${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes + currentYearGastosTotals.bienesCorrientes;
     worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCapital + currentYearGastosTotals.bienesCapital;
@@ -1045,40 +1161,28 @@ private clasificarGastosParaConsolidado(
    * Genera el reporte para un GRUPO de proyectos tipo PIC.
    */
   async generatePicReportGroup(
-    baseProjectName: string, // El proyecto que seleccionó el usuario (ej. "PIC 01-2023...")
-    metadata: ReportMetadata, // Los metadatos globales
+    modalityName: string, // Ahora recibimos el nombre de la modalidad
+    // ¡Ya no recibimos metadata!
   ): Promise<ExcelJS.Workbook> {
     
-    // 1. Identificar el grupo de proyectos (ej. "MOD. 01 - VII CONV.")
-    // Lógica mejorada: El grupo es todo lo que NO es "PIC XX-XXXX"
-    const groupIdentifier = baseProjectName.replace(/^PIC\s*\d+-\d{4}\s*/i, '').trim();
-
-    if (!groupIdentifier) {
+    // 1. Obtener la lista de proyectos de la modalidad
+    const projectList = mapaModalidadesPIC.get(modalityName);
+    if (!projectList || projectList.length === 0) {
       throw new Error(
-        `No se pudo identificar el GRUPO del proyecto PIC: ${baseProjectName}.`,
+        `No se pudo encontrar la lista de proyectos para la modalidad: ${modalityName}`,
       );
     }
-    
-    // 2. Obtener TODOS los gastos de TODOS los proyectos de ese grupo
-    // Buscamos proyectos que terminen con ese identificador
+
+    // 2. Obtener TODOS los gastos de la base de datos para esta lista de proyectos
     const allGastosInGroup = await this.gastoRepository.find({
-      where: { 
-        proyecto: Like(`%${groupIdentifier}`),
-      },
+      where: projectList.map(proyecto => ({ proyecto })), // Busca todos los proyectos
       order: { proyecto: 'ASC', fechaDevengado: 'ASC' },
     });
 
-    if (allGastosInGroup.length === 0) {
-      throw new Error(
-        `No se encontraron gastos para el grupo: ${groupIdentifier}`,
-      );
-    }
-
-    // 3. Agrupar los gastos por el nombre completo del proyecto
+    // 3. Agrupar los gastos encontrados por el nombre completo del proyecto
     const gastosPorProyecto = new Map<string, Gasto[]>();
     for (const gasto of allGastosInGroup) {
-      const projectName = gasto.proyecto; // El nombre completo
-      // Asegurar que exista el arreglo para este proyecto antes de usar push
+      const projectName = gasto.proyecto;
       let lista = gastosPorProyecto.get(projectName);
       if (!lista) {
         lista = [];
@@ -1091,29 +1195,29 @@ private clasificarGastosParaConsolidado(
     const workbook = new ExcelJS.Workbook();
 
     // 5. Crear la Hoja "CONSOLIDADO" (Formato PIC)
-    // Pasamos el Map, los metadatos globales (para Opción A) y el nombre del grupo
+    // Pasamos el Mapa, la lista completa de proyectos, y el nombre del grupo
     this.crearHojaPicConsolidado(
       workbook,
       gastosPorProyecto,
-      metadata, // Metadatos globales
-      groupIdentifier,
+      projectList, // <-- NUEVO: Pasamos la lista completa de proyectos
+      modalityName,
     );
 
-    // 6. Crear las Hojas de Detalle (una por cada proyecto PIC)
-    for (const [projectName, projectGastos] of gastosPorProyecto.entries()) {
-      // Extraer un nombre corto para la hoja (ej. "PIC 1-2023")
-      const shortNameMatch = projectName.match(/PIC\s*\d+-\d{4}/i);
-      // Fallback por si no encuentra el patrón
-      let sheetName = shortNameMatch ? shortNameMatch[0] : projectName.substring(0, 10);
+    // 6. Crear las Hojas de Detalle (una por cada proyecto en la LISTA MAESTRA)
+    for (const projectName of projectList) {
+      // Obtenemos los gastos de este proyecto (o un array vacío si no tiene)
+      const projectGastos = gastosPorProyecto.get(projectName) || [];
       
+      const shortNameMatch = projectName.match(/PIC\s*\d+-\d{4}/i);
+      let sheetName = shortNameMatch ? shortNameMatch[0] : projectName.substring(0, 10);
       sheetName = sheetName.replace(/[\/\?\*\[\]\:]/g, '-').substring(0, 31);
 
       this.crearHojaPicDetalle(
         workbook,
         sheetName,
-        projectName, // Pasa el nombre completo para el título
+        projectName, 
         projectGastos,
-        metadata, // Metadatos globales (para Opción A)
+        // ¡Ya no pasamos metadata!
       );
     }
 
@@ -1164,14 +1268,15 @@ private clasificarGastosParaConsolidado(
   private crearHojaPicConsolidado(
     workbook: ExcelJS.Workbook,
     gastosPorProyecto: Map<string, Gasto[]>,
-    metadata: ReportMetadata, // Metadatos globales (para Opción A)
+    projectList: string[], // <-- NUEVO: Lista completa de proyectos
     groupIdentifier: string,
   ): void {
     const worksheet = workbook.addWorksheet('CONSOLIDADO');
     let currentRow = 1;
 
-    // Estilos
+    // --- Estilos (sin cambios) ---
     const titleStyle: Partial<ExcelJS.Style> = { font: { bold: true, size: 12 } };
+    const boldStyle: Partial<ExcelJS.Style> = { font: { bold: true } };
     const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
     const allBorders: Partial<ExcelJS.Borders> = {
       top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
@@ -1181,19 +1286,24 @@ private clasificarGastosParaConsolidado(
       border: allBorders, 
       alignment: { horizontal: 'center', vertical: 'middle', wrapText: true } 
     };
-
-    // Título global
+    const centerAlign: Partial<ExcelJS.Alignment> = {
+      horizontal: 'center',
+      vertical: 'middle',
+    };
+    
+    // --- Título global (sin cambios) ---
     worksheet.mergeCells(`A${currentRow}:J${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = `EJECUCIÓN DE GASTOS DE PROYECTOS - ${groupIdentifier}`;
     worksheet.getCell(`A${currentRow}`).style = titleStyle;
-    currentRow += 3; // Espacio
+    worksheet.getCell(`A${currentRow}`).alignment = centerAlign;
+    currentRow += 2; // Espacio
 
     const monthNames = [
       'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
       'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE',
     ];
     
-    // Las categorías en el orden del consolidado PIC
+    // Categorías en el orden del consolidado PIC
     const categories: (keyof PicMonthSummary)[] = [
       'BIENES CORRIENTES',
       'BIENES CAPITAL',
@@ -1206,115 +1316,168 @@ private clasificarGastosParaConsolidado(
     
     // Anchos de columna para el consolidado PIC
     worksheet.columns = [
-      { width: 12 }, // MES
-      { width: 14 }, // PRESUPUESTO
-      { width: 14 }, // BIENES CORRIENTES
-      { width: 14 }, // BIENES CAPITAL
-      { width: 14 }, // SERVICIOS
-      { width: 14 }, // SUBVENCION
-      { width: 14 }, // VIATICOS
-      { width: 14 }, // CUENTA ENCARGO
-      { width: 15 }, // TOTAL
+      { width: 35 }, // A: Mes / Investigador / Proyecto (MÁS ANCHO)
+      { width: 14 }, // B: PRESUPUESTO
+      { width: 14 }, // C: BIENES CORRIENTES
+      { width: 14 }, // D: BIENES CAPITAL
+      { width: 14 }, // E: SERVICIOS
+      { width: 14 }, // F: SUBVENCION
+      { width: 14 }, // G: VIATICOS
+      { width: 14 }, // H: CUENTA ENCARGO
+      { width: 15 }, // I: TOTAL
     ];
+    worksheet.getColumn('A').alignment = { wrapText: true, vertical: 'middle' };
 
-    // Iterar por cada proyecto en el grupo
-    for (const [projectName, projectGastos] of gastosPorProyecto.entries()) {
+
+    // Iterar por cada proyecto en la LISTA MAESTRA
+    for (const projectName of projectList) {
+      // Obtenemos los gastos (o un array vacío si no hay)
+      const projectGastos = gastosPorProyecto.get(projectName) || [];
+
       // --- Título del Proyecto ---
       worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
       worksheet.getCell(`A${currentRow}`).value = projectName;
-      worksheet.getCell(`A${currentRow}`).style = titleStyle;
+      worksheet.getCell(`A${currentRow}`).style = { ...titleStyle, alignment: centerAlign };
       currentRow++;
 
-      // --- Metadata del Proyecto (Opción A: Dejar en blanco) ---
-      worksheet.getCell(`B${currentRow}`).value = `Investigador:`; // Dejado en blanco
+      // --- Metadata del Proyecto (AHORA VACÍOS PARA RELLENAR MANUALMENTE) ---
+      worksheet.getCell(`A${currentRow}`).value = `Investigador:`;
+      worksheet.getCell(`A${currentRow}`).font = {bold: true};
       currentRow++;
-      worksheet.getCell(`B${currentRow}`).value = `Duración:`; // Dejado en blanco
+      worksheet.getCell(`A${currentRow}`).value = `Duración:`;
+      worksheet.getCell(`A${currentRow}`).font = {bold: true};
       currentRow++;
+      currentRow++; // Espacio
+
+      // --- Sección INGRESOS (AHORA VACÍA PARA RELLENAR MANUALMENTE) ---
+      worksheet.getCell(`A${currentRow}`).value = 'INGRESOS';
+      worksheet.getCell(`A${currentRow}`).font = {bold: true};
+      worksheet.getCell(`I${currentRow}`).value = 'TOTAL';
+      worksheet.getCell(`I${currentRow}`).font = {bold: true};
+      currentRow++;
+      // Dejamos 2 filas vacías para rellenar
+      worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+      currentRow++;
+      worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+      currentRow++;
+      // Fila de TOTAL INGRESOS (vacía)
+      worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
+      worksheet.getCell(`A${currentRow}`).value = 'TOTAL INGRESOS';
+      worksheet.getCell(`A${currentRow}`).font = {bold: true};
+      worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
+      worksheet.getCell(`I${currentRow}`).font = {bold: true};
+      currentRow++;
+      currentRow++; // Espacio
 
       // --- Cabeceras de la tabla resumen ---
       const headers = ['MES', 'PRESUPUESTO', 'EJECUCIÓN DE GASTOS', '', '', '', '', '', 'TOTAL'];
-      const subHeaders = ['', '', ...categories.slice(0, -1), '']; // Quita 'TOTAL' y añade ''
+      const subHeaders = ['', '', ...categories.slice(0, -1), '']; 
       
       let headerRow = worksheet.getRow(currentRow);
       headerRow.values = headers;
-      worksheet.mergeCells(currentRow, 3, currentRow, 8); // Merge "EJECUCIÓN DE GASTOS" (C a H)
+      worksheet.mergeCells(currentRow, 3, currentRow, 8); // Merge "EJECUCIÓN DE GASTOS"
       headerRow.eachCell((cell) => cell.style = headerStyle);
       currentRow++;
       
       headerRow = worksheet.getRow(currentRow);
       headerRow.values = subHeaders;
-      worksheet.getRow(currentRow - 1).getCell(9).value = 'TOTAL'; // Pone TOTAL en la celda superior
+      worksheet.getRow(currentRow - 1).getCell(9).value = 'TOTAL'; 
       worksheet.mergeCells(currentRow - 1, 9, currentRow, 9); // Merge vertical de 'TOTAL'
-      headerRow.getCell(1).value = 'MES'; // Pone MES en la celda inferior
+      headerRow.getCell(1).value = 'MES';
       worksheet.mergeCells(currentRow - 1, 1, currentRow, 1); // Merge vertical de 'MES'
-      headerRow.getCell(2).value = 'PRESUPUESTO'; // Pone PRESUPUESTO en la celda inferior
+      headerRow.getCell(2).value = 'PRESUPUESTO';
       worksheet.mergeCells(currentRow - 1, 2, currentRow, 2); // Merge vertical de 'PRESUPUESTO'
       
       headerRow.eachCell((cell) => cell.style = headerStyle);
+
+      // Dejamos la celda de Presupuesto Total (B) vacía para rellenar
+      worksheet.getCell(`B${currentRow}`).numFmt = moneyFormat;
       currentRow++;
       
       const projectTotals: PicMonthSummary = this.getEmptyPicSummary();
+      let saldoAcumulado = 0; // Se calculará manualmente
 
-      // --- Resumen por Mes ---
+      // --- Sección GASTOS AÑOS ANTERIORES (AHORA VACÍA) ---
+      // Dejamos 2 filas para gastos de años anteriores
+      const year1 = new Date().getFullYear() - 2; // 2023
+      const year2 = new Date().getFullYear() - 1; // 2024
+      
+      let row = worksheet.addRow([`AÑO ${year1}`, null, 0, 0, 0, 0, 0, 0, 0]);
+      row.font = { bold: true };
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.border = allBorders;
+        if (colNumber > 2) cell.numFmt = moneyFormat;
+      });
+      currentRow++;
+
+      row = worksheet.addRow([`AÑO ${year2}`, null, 0, 0, 0, 0, 0, 0, 0]);
+      row.font = { bold: true };
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.border = allBorders;
+        if (colNumber > 2) cell.numFmt = moneyFormat;
+      });
+      currentRow++;
+      
+      // Fila de SALDO (vacía)
+      const saldoRow = worksheet.addRow([ `SALDO AL ${year2}`, null, null, null, null, null, null, null, null ]);
+      saldoRow.font = { bold: true };
+      saldoRow.getCell(9).numFmt = moneyFormat;
+      currentRow++;
+
+
+      // --- Resumen por Mes (Año Actual) ---
       for (const month of monthNames) {
         const monthShort = month.substring(0, 3);
         const gastosDelMes = projectGastos.filter(
           (g) => g.mes && g.mes.toUpperCase() === month,
         );
 
-        // Clasificar y sumar los gastos del mes
-        const monthSummary = this.getEmptyPicSummary();
-        for (const gasto of gastosDelMes) {
-          const category = this.clasificarGastoPic(gasto.especifica);
-          // Si la categoría es null (o sea, 'OTROS'), no lo sumes a nada.
-          if (category === null) {
-            continue;
-          }
-          const totalGasto = (Number(gasto.monto) || 0) + (Number(gasto.monto2) || 0);
-
-          if (monthSummary[category] !== undefined) {
-            (monthSummary as any)[category] += totalGasto;
-          }
-          monthSummary['TOTAL'] += totalGasto;
-        }
+        const monthSummary = this.clasificarGastosParaPicConsolidado(gastosDelMes);
         
-        // Añadir la fila de datos del mes
         const rowData = [
-          `${monthShort} - 2025`, // Asumimos 2025, podrías hacerlo dinámico
-          null, // Presupuesto (dejado en blanco)
-          ...categories.map(cat => monthSummary[cat] || null) // Mapear valores
+          `${monthShort} - ${new Date().getFullYear()}`,
+          null, // Presupuesto
+          ...categories.map(cat => monthSummary[cat] || null)
         ];
         const row = worksheet.addRow(rowData);
         
-        // Aplicar estilos a la fila de datos
         row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
           cell.border = allBorders;
           if (colNumber > 2) {
-             cell.numFmt = moneyFormat;
-             if (!cell.value) cell.value = 0; // Poner 0 en celdas vacías
+            cell.numFmt = moneyFormat;
+            if (!cell.value) cell.value = 0; 
           }
         });
         
-        // Acumular totales del proyecto
         categories.forEach(cat => (projectTotals as any)[cat] += monthSummary[cat]);
         currentRow++;
       }
       
       // --- Fila de Total del Proyecto ---
       const totalRowData = [
-        'TOTAL',
-        null,
+        'TOTAL GASTOS',
+        null, // Presupuesto (vacío)
         ...categories.map(cat => projectTotals[cat] || null)
       ];
       const totalRow = worksheet.addRow(totalRowData);
       totalRow.font = { bold: true };
       totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
           cell.border = allBorders;
-          if (colNumber > 2) {
-             cell.numFmt = moneyFormat;
-             if (!cell.value) cell.value = 0;
+          if (colNumber > 1) { 
+            cell.numFmt = moneyFormat;
+            if (!cell.value) cell.value = 0;
           }
       });
+      currentRow++;
+
+      // --- Fila de SALDO AL AÑO (Año Actual) ---
+      const saldoActualRow = worksheet.addRow([
+        `SALDO AL AÑO ${new Date().getFullYear()}`,
+         null, null, null, null, null, null, null,
+         null // Vacío
+      ]);
+      saldoActualRow.font = { bold: true };
+      saldoActualRow.getCell(9).numFmt = moneyFormat;
       currentRow++;
       
       currentRow += 2; // Espacio entre proyectos
@@ -1331,7 +1494,6 @@ private clasificarGastosParaConsolidado(
     sheetName: string,
     fullProjectName: string,
     projectGastos: Gasto[],
-    metadata: ReportMetadata, // Metadatos globales (para Opción A)
   ): void {
     const worksheet = workbook.addWorksheet(sheetName);
     let currentRow = 1;
@@ -1345,7 +1507,7 @@ private clasificarGastosParaConsolidado(
     const monthTotalStyle: Partial<ExcelJS.Font> = { bold: true };
 
     // --- Títulos ---
-    worksheet.mergeCells(`A${currentRow}:K${currentRow}`); // Ajustado a 10 columnas
+    worksheet.mergeCells(`A${currentRow}:K${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = fullProjectName;
     worksheet.getCell(`A${currentRow}`).style = titleStyle;
     currentRow += 2;
@@ -1440,6 +1602,12 @@ private clasificarGastosParaConsolidado(
          totalMonthRow.getCell(importe1ColIndex).value = totalMonthMonto2 || 0;
          totalMonthRow.getCell(importe1ColIndex).numFmt = moneyFormat;
          totalMonthRow.font = monthTotalStyle;
+
+         // Poner 0 si es null para que se muestre
+         if (totalMonth === 0) totalMonthRow.getCell(importeColIndex).value = 0;
+         if (totalMonthMonto2 === 0) totalMonthRow.getCell(importe1ColIndex).value = 0;
+
+
          totalMonthRow.alignment = { horizontal: 'center' };
          currentRow++;
          
