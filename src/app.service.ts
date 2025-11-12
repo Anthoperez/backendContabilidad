@@ -21,15 +21,14 @@ interface GastoAnoAnterior {
 interface ReportMetadata {
   investigador?: string;
   rr_investigador?: string;
-  fechaInicio?: string | Date;
+  fechaInicio?: string;
   fechaCulminacion?: Date;
   duracion?: string;
-  presupuestoProcienciaAporteMonetario?: number | null;
-  presupuestoProcienciaAporteNoMonetario?: number | null;
-  presupuestoEntidadEjecutoraAporteMonetario?: number | null;
-  presupuestoEntidadEjecutoraAporteNoMonetario?: number | null;
-  presupuestoEntidadAsociadaAporteMonetario?: number | null;
-  presupuestoEntidadAsociadaAporteNoMonetario?: number | null;
+  presupuestoEntidades?: {
+    nombreEntidad: string;
+    aporteNoMonetario: number | null;
+    aporteMonetario: number | null;
+  }[];
   ingresos?: { descripcion: string; monto: number | null }[];
   gastosAnosAnteriores?: GastoAnoAnterior[];
 }
@@ -250,52 +249,70 @@ export class AppService {
 
   // ▼▼▼ CORRECCIÓN ERROR 3 (Implementación) ▼▼▼
   // Actualizamos esta función para que calcule las nuevas categorías
-  private clasificarGastosParaConsolidado(
-    gastos: Gasto[],
-  ): ReporteDataConsolidado {
-    const reporte: ReporteDataConsolidado = {
-      bienesCorrientes: 0,
-      bienesCapital: 0,
-      servicios: 0,
-      subvencion: 0,
-      viaticos: 0, // <-- Inicializado
-      encargoInterno: 0, // <-- Inicializado
-      totalMes: 0, // <-- Inicializado
-    };
+private clasificarGastosParaConsolidado(
+    gastos: Gasto[],
+  ): ReporteDataConsolidado {
+    const reporte: ReporteDataConsolidado = {
+      bienesCorrientes: 0,
+      bienesCapital: 0,
+      servicios: 0,
+      subvencion: 0,
+      viaticos: 0,
+      encargoInterno: 0,
+      totalMes: 0,
+    };
 
-    for (const gasto of gastos) {
-      // Normalizar espacios (ej. "2.3. 2 1. 1 2" -> "2.3.2 1.1 2")
-      const especifica = gasto.especifica?.trim().replace(/\s+/g, ' ') || '';
-      const monto = Number(gasto.monto) || 0;
+    // --- INICIO DE LA NUEVA LÓGICA ---
+    for (const gasto of gastos) {
+      // 1. Obtenemos el monto total (monto + monto2)
+      // Esta era una corrección clave: sumar ambos montos.
+      const montoTotal = (Number(gasto.monto) || 0) + (Number(gasto.monto2) || 0);
 
-      if (especifica.startsWith('2.3.1')) {
-        reporte.bienesCorrientes += monto;
-      } else if (especifica.startsWith('2.6.')) {
-        reporte.bienesCapital += monto;
-      } else if (especifica.startsWith('2.5.')) {
-        reporte.subvencion += monto;
-      } //else if (especifica.startsWith('2.3.2 1.1')) {
-      //   // Lógica específica para Viáticos (basada en tus CSV)
-      //   reporte.viaticos += monto;
-      // } else if (especifica.startsWith('2.3.2')) {
-      //   // Todo lo demás que sea 2.3.2 va a Servicios
-      //   reporte.servicios += monto;
-      // }
-      // Nota: Aún no tengo la lógica para 'encargoInterno', así que se quedará en 0.
-      // Si "Encargo Interno" tiene un código (ej. '2.3.2 1.2'), añádelo aquí.
-    }
+      // Si el monto es 0, no hay nada que clasificar
+      if (montoTotal === 0) continue;
 
-    // Calculamos el total
-    reporte.totalMes =
-      reporte.bienesCorrientes +
-      reporte.bienesCapital +
-      reporte.servicios +
-      reporte.subvencion +
-      reporte.viaticos +
-      reporte.encargoInterno;
+      // 2. Obtenemos los campos para las reglas
+      const doc = gasto.tipoDocumento?.trim().toUpperCase() || '';
+      const especifica = gasto.especifica?.trim().replace(/\s+/g, ' ') || '';
 
-    return reporte;
-  }
+      // 3. Acumulamos el total del mes
+      reporte.totalMes += montoTotal;
+
+      // 4. Aplicamos las reglas de negocio en orden de prioridad
+      
+      // Regla 1: Viáticos (P/V o C/S)
+      if (doc === 'P/V' || doc === 'C/S') {
+        reporte.viaticos += montoTotal;
+      }
+      // Regla 2: Encargo Interno (R.DGA)
+      else if (doc === 'R.DGA') {
+        reporte.encargoInterno += montoTotal;
+      }
+      // Regla 3: Servicios (O/S)
+      else if (doc === 'O/S') {
+        reporte.servicios += montoTotal;
+      }
+      // Regla 4: Subvención (P/S)
+      else if (doc === 'P/S') {
+        reporte.subvencion += montoTotal;
+      }
+      // Regla 5: Bienes Corrientes (O/C + especifica 2.3.1)
+      else if (doc === 'O/C' && especifica.startsWith('2.3.1')) {
+        reporte.bienesCorrientes += montoTotal;
+      }
+      // Regla 6: Bienes Capital (solo especifica 2.6)
+      else if (especifica.startsWith('2.6.')) {
+        reporte.bienesCapital += montoTotal;
+      }
+      // (Cualquier otra combinación, como O/C + 2.3.2, no se suma 
+      // a ninguna categoría específica, pero ya se sumó al totalMes)
+    }
+    // --- FIN DE LA NUEVA LÓGICA ---
+
+    // Ya no necesitamos calcular el totalMes al final,
+    // se calculó dentro del bucle.
+    return reporte;
+  }
   // ▲▲▲ FIN CORRECCIÓN ERROR 3 (Implementación) ▲▲▲
 
   // ▲▲▲ FIN CORRECCIÓN ERROR 1 ▲▲▲
@@ -367,12 +384,13 @@ export class AppService {
     worksheet.getCell(`F${currentRow}`).font = { bold: true };
     
     const fechaInicioCell = worksheet.getCell(`G${currentRow}`);
-    if (metadata.fechaInicio) {
-      fechaInicioCell.value = new Date(metadata.fechaInicio);
-      fechaInicioCell.numFmt = 'dd/mm/yyyy';
-    } else {
-      fechaInicioCell.value = '';
-    }
+    worksheet.getCell(`G${currentRow}`).value = metadata.fechaInicio || '';
+    // if (metadata.fechaInicio) {
+    //   fechaInicioCell.value = new Date(metadata.fechaInicio);
+    //   fechaInicioCell.numFmt = 'dd/mm/yyyy';
+    // } else {
+    //   fechaInicioCell.value = '';
+    // }
     fechaInicioCell.border = allBorders;
 
     worksheet.getCell(`H${currentRow}`).value = 'Fecha de Culminacion:';
@@ -402,98 +420,88 @@ export class AppService {
     currentRow++; // Salto de línea
 
     // ... (SECCIÓN DESCRIPCIÓN DE PRESUPUESTO - Cabeceras)
-    // Colocamos la DESCRIPCION DE PRESUPUESTO en la misma fila que los headers de aporte
-    worksheet.getCell(`A${currentRow}`).value = 'DESCRIPCION DE PRESUPUESTO';
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    // Reservar A:B para la descripción
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-    worksheet.getCell(`C${currentRow}`).value = 'Aporte Monetaria o no monetaria (Valorizado S/)';
-    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
-    worksheet.getCell(`C${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-    worksheet.getCell(`C${currentRow}`).alignment = {
-      vertical: 'middle',
-      horizontal: 'center',
-      wrapText: true,
-    };
-    worksheet.getCell(`E${currentRow}`).value = 'Aporte Monetario S/';
-    worksheet.getCell(`E${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-    worksheet.getCell(`E${currentRow}`).alignment = {
-      vertical: 'middle',
-      horizontal: 'center',
-      wrapText: true,
-    };
-    worksheet.getCell(`F${currentRow}`).value = 'Aporte Total S/';
-    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-    worksheet.getCell(`F${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
-    // Aplicar bordes a toda la fila de cabecera de presupuesto
-    for (let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
-    currentRow++;
+   // --- SECCIÓN DESCRIPCIÓN DE PRESUPUESTO (DINÁMICA) ---
+    // Cabeceras
+    worksheet.getCell(`A${currentRow}`).value = 'DESCRIPCION DE PRESUPUESTO';
+    worksheet.getCell(`A${currentRow}`).font = { bold: true };
+    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+    worksheet.getCell(`C${currentRow}`).value = 'Aporte No Monetario (Valorizado S/)'; // CAMBIADO
+    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
+    worksheet.getCell(`C${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    worksheet.getCell(`C${currentRow}`).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    worksheet.getCell(`E${currentRow}`).value = 'Aporte Monetario S/';
+    worksheet.getCell(`E${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    worksheet.getCell(`E${currentRow}`).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    worksheet.getCell(`F${currentRow}`).value = 'Aporte Total S/';
+    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
+    worksheet.getCell(`F${currentRow}`).style = { font: { bold: true }, alignment: centerAlign, border: allBorders };
+    for (let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    currentRow++;
 
-    // ... (Fila PROCIENCIA) ...
-    worksheet.getCell(`A${currentRow}`).value = 'PROCIENCIA';
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-    worksheet.getCell(`C${currentRow}`).value = metadata.presupuestoProcienciaAporteNoMonetario || null;
-    worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
-    worksheet.getCell(`E${currentRow}`).value = metadata.presupuestoProcienciaAporteMonetario || null;
-    worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
-    const procienciaTotal = (metadata.presupuestoProcienciaAporteNoMonetario || 0) + (metadata.presupuestoProcienciaAporteMonetario || 0);
-    worksheet.getCell(`F${currentRow}`).value = procienciaTotal || null;
-    worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
-    currentRow++;
+    // Variables para sumar el total
+    let totalAporteNoMonetario = 0;
+    let totalAporteMonetario = 0;
+    let totalPresupuestoGeneral = 0;
 
-    // ... (Fila Entidad Ejecutora) ...
-    worksheet.getCell(`A${currentRow}`).value = 'Entidad Ejecutora';
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-    worksheet.getCell(`C${currentRow}`).value = metadata.presupuestoEntidadEjecutoraAporteNoMonetario || null;
-    worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
-    worksheet.getCell(`E${currentRow}`).value = metadata.presupuestoEntidadEjecutoraAporteMonetario || null;
-    worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
-    const ejecutoraTotal = (metadata.presupuestoEntidadEjecutoraAporteNoMonetario || 0) + (metadata.presupuestoEntidadEjecutoraAporteMonetario || 0);
-    worksheet.getCell(`F${currentRow}`).value = ejecutoraTotal || null;
-    worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
-    currentRow++;
+    // Bucle dinámico para las entidades de presupuesto
+    if (metadata.presupuestoEntidades && metadata.presupuestoEntidades.length > 0) {
+      metadata.presupuestoEntidades.forEach(entidad => {
+        const nombre = entidad.nombreEntidad || 'Entidad sin nombre';
+        const aporteNoMonetario = Number(entidad.aporteNoMonetario) || 0;
+        const aporteMonetario = Number(entidad.aporteMonetario) || 0;
+        const totalFila = aporteNoMonetario + aporteMonetario;
 
-    // ... (Fila Entidad Asociada) ...
-    worksheet.getCell(`A${currentRow}`).value = 'Entidad Asociada';
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-    worksheet.getCell(`C${currentRow}`).value = metadata.presupuestoEntidadAsociadaAporteNoMonetario || null;
-    worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
-    worksheet.getCell(`E${currentRow}`).value = metadata.presupuestoEntidadAsociadaAporteMonetario || null;
-    worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
-    const asociadaTotal = (metadata.presupuestoEntidadAsociadaAporteNoMonetario || 0) + (metadata.presupuestoEntidadAsociadaAporteMonetario || 0);
-    worksheet.getCell(`F${currentRow}`).value = asociadaTotal || null;
-    worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
-    currentRow++;
+        worksheet.getCell(`A${currentRow}`).value = nombre;
+        worksheet.getCell(`A${currentRow}`).font = { bold: true };
+        worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+        
+        worksheet.getCell(`C${currentRow}`).value = aporteNoMonetario || null;
+        worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
+        worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
+        
+        worksheet.getCell(`E${currentRow}`).value = aporteMonetario || null;
+        worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
+        
+        worksheet.getCell(`F${currentRow}`).value = totalFila || null;
+        worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
+        worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
+        
+        for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
 
-    // ... (Fila TOTAL PRESUPUESTO) ...
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL PRESUPUESTO';
-    worksheet.getCell(`A${currentRow}`).font = { bold: true };
-    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-    const totalAporteNoMonetario = (metadata.presupuestoProcienciaAporteNoMonetario || 0) + (metadata.presupuestoEntidadEjecutoraAporteNoMonetario || 0) + (metadata.presupuestoEntidadAsociadaAporteNoMonetario || 0);
-    worksheet.getCell(`C${currentRow}`).value = totalAporteNoMonetario || null;
-    worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
-    const totalAporteMonetario = (metadata.presupuestoProcienciaAporteMonetario || 0) + (metadata.presupuestoEntidadEjecutoraAporteMonetario || 0) + (metadata.presupuestoEntidadAsociadaAporteMonetario || 0);
-    worksheet.getCell(`E${currentRow}`).value = totalAporteMonetario || null;
-    worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
-    worksheet.getCell(`F${currentRow}`).value = (procienciaTotal + ejecutoraTotal + asociadaTotal) || null;
-    worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
-    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
-    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
-    currentRow++;
-    currentRow++;
+        // Acumular totales
+        totalAporteNoMonetario += aporteNoMonetario;
+        totalAporteMonetario += aporteMonetario;
+        totalPresupuestoGeneral += totalFila;
+
+        currentRow++;
+      });
+    } else {
+      // Fila vacía si no hay datos (o puedes poner 3 filas vacías)
+      worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+      for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+      currentRow++;
+    }
+
+    // Fila TOTAL PRESUPUESTO (calculada dinámicamente)
+    worksheet.getCell(`A${currentRow}`).value = 'TOTAL PRESUPUESTO';
+    worksheet.getCell(`A${currentRow}`).font = { bold: true };
+    worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
+    
+    worksheet.getCell(`C${currentRow}`).value = totalAporteNoMonetario || null;
+    worksheet.getCell(`C${currentRow}`).numFmt = moneyFormat;
+    worksheet.mergeCells(`C${currentRow}:D${currentRow}`);
+    
+    worksheet.getCell(`E${currentRow}`).value = totalAporteMonetario || null;
+    worksheet.getCell(`E${currentRow}`).numFmt = moneyFormat;
+    
+    worksheet.getCell(`F${currentRow}`).value = totalPresupuestoGeneral || null;
+    worksheet.getCell(`F${currentRow}`).numFmt = moneyFormat;
+    worksheet.mergeCells(`F${currentRow}:G${currentRow}`);
+    for(let col = 1; col <= 7; col++) worksheet.getCell(`${String.fromCharCode(64 + col)}${currentRow}`).border = allBorders;
+    currentRow++;
+    currentRow++; // Salto de línea
+
+    // ▲▲▲ FIN DE LA SECCIÓN DE REEMPLAZO ▲▲▲
 
     // ... (SECCIÓN INGRESOS) ...
 
@@ -653,10 +661,11 @@ export class AppService {
       currentRow++;
     }
 
+    currentRow++;
     // ▼▼▼ CÓDIGO A AÑADIR (AQUÍ) ▼▼▼
     // --- Fila TOTAL GASTOS (resumen de TODOS los años anteriores) ---
     worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS (Años Anteriores)';
+    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS 2025';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes || null;
     worksheet.getCell(`D${currentRow}`).value = previousYearsGastosTotals.bienesCapital || null;
@@ -770,7 +779,7 @@ export class AppService {
       if (colNumber >= 3 && colNumber <= 9) cell.numFmt = moneyFormat;
       cell.border = allBorders;
     });
-    currentRow++;
+    currentRow+=2;
 
     // ... (Fila TOTAL GASTOS (GLOBAL)) ...
     worksheet.mergeCells(`A${currentRow}:B${currentRow}`);
@@ -790,7 +799,6 @@ export class AppService {
       // Poner 0 si es nulo
       if (colNumber >= 3 && !cell.value) cell.value = 0;
     });
-    currentRow++;
     currentRow++;
 
     // ... (SALDO AL AÑO) ...
