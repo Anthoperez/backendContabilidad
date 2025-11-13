@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { Gasto } from './gasto.entity';
 import type { Response } from 'express';
 import * as ExcelJS from 'exceljs'; // ¡Asegúrate de importar ExcelJS!
+import type { PicMetadataDto } from './app.service';
 
 @Controller('api')
 export class AppController {
@@ -52,6 +53,32 @@ export class AppController {
     return this.appService.findPicProjects();
   }
 
+
+  // ▼▼▼ 3. AÑADIR LOS NUEVOS ENDPOINTS PARA METADATA DE PIC ▼▼▼
+
+  /**
+   * Obtiene la metadata guardada para un proyecto PIC.
+   */
+  @Get('pic-metadata/:projectName')
+  getPicMetadata(@Param('projectName') projectName: string) {
+    // Decodificar el nombre del proyecto que viene de la URL
+    const decodedProjectName = decodeURIComponent(projectName);
+    return this.appService.getPicMetadata(decodedProjectName);
+  }
+
+  /**
+   * Guarda o actualiza la metadata para un proyecto PIC.
+   */
+  @Post('pic-metadata/:projectName')
+  savePicMetadata(
+    @Param('projectName') projectName: string,
+    @Body() data: PicMetadataDto,
+  ) {
+    const decodedProjectName = decodeURIComponent(projectName);
+    return this.appService.savePicMetadata(decodedProjectName, data);
+  }
+  
+  // ▲▲▲ FIN DE LOS NUEVOS ENDPOINTS ▲▲▲
 
 
 // --- ENDPOINTS DE GENERACIÓN DE REPORTES (MODIFICADOS) ---

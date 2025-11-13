@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Gasto } from './gasto.entity';
+import { PicMetadata } from './pic-metadata.entity';
 
 
 @Module({
@@ -14,10 +15,10 @@ import { Gasto } from './gasto.entity';
       username: 'postgres', // Este es el usuario por defecto
       password: '70707070', // <-- ¡PON AQUÍ TU CONTRASEÑA!
       database: 'contabilidad_db',
-      entities: [Gasto],
+      entities: [Gasto, PicMetadata],
       synchronize: true, // Esto crea/actualiza la tabla automáticamente
     }),
-    TypeOrmModule.forFeature([Gasto]),
+    TypeOrmModule.forFeature([Gasto, PicMetadata]),
   ],
   controllers: [AppController],
   providers: [AppService],
