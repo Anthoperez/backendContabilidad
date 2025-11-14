@@ -1550,6 +1550,21 @@ private clasificarGastosParaConsolidado(
         currentRow++;
       }
       
+      const totalAnoActualRow = worksheet.addRow([
+        `AÑO ${new Date().getFullYear()}`,
+        null, // Presupuesto
+        ...categories.map(cat => (projectTotals as any)[cat] || 0)
+      ]);
+      totalAnoActualRow.font = { bold: true };
+      totalAnoActualRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.border = allBorders;
+        if (colNumber > 2) {
+          cell.numFmt = moneyFormat;
+          if (!cell.value) cell.value = 0;
+        }
+      });
+      currentRow++;
+
       // --- Fila de Total del Proyecto (GASTO TOTAL AÑOS PREVIOS + AÑO ACTUAL) ---
       const granTotal: PicMonthSummary = this.getEmptyPicSummary();
       categories.forEach(cat => {
@@ -1559,7 +1574,7 @@ private clasificarGastosParaConsolidado(
       const totalRowData = [
         'TOTAL GASTOS',
         presupuestoTotal || null,
-        ...categories.map(cat => (granTotal as any)[cat] || null)
+        ...categories.map(cat => (granTotal as any)[cat] || 0) // Usamos granTotal
       ];
       const totalRow = worksheet.addRow(totalRowData);
       totalRow.font = { bold: true };
@@ -1573,7 +1588,7 @@ private clasificarGastosParaConsolidado(
       currentRow++;
 
       // --- Fila de SALDO AL AÑO (Año Actual) ---
-      const saldoActual = presupuestoTotal - granTotal.TOTAL;
+      const saldoActual = saldoAnterior - projectTotals.TOTAL;
       const saldoActualRow = worksheet.addRow([
         `SALDO AL AÑO ${new Date().getFullYear()}`,
          null, null, null, null, null, null, null,
