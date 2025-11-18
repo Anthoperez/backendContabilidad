@@ -18,6 +18,6 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0'); // <-- IMPORTANTE: '0.0.0.0' para Render
-  console.log(`🚀 Backend corriendo en puerto ${port}`);
+  console.log(`Backend corriendo en puerto ${port}`);
 }
 bootstrap();

@@ -90,14 +90,14 @@ interface PicMonthSummary {
 
 
 // --- PIC 2021 ---
-mapaModalidadesPIC.set('PIC 2021 - MOD. 01 (Básica y Aplicada)', [
+mapaModalidadesPIC.set('V CONVOCATORIA - 2021 MODALIDAD 1: PROYECTOS DE INVESTIGACIÓN BÁSICA Y APLICADA', [
   'PIC 01-2021 MOD. 01 - V CONV.',
   'PIC 02-2021 MOD. 01 - V CONV.',
   'PIC 03-2021 MOD. 01 - V CONV.',
   'PIC 04-2021 MOD. 01 - V CONV.',
   'PIC 05-2021 MOD. 01 - V CONV.'
 ]);
-mapaModalidadesPIC.set('PIC 2021 - MOD. 02 (Tesis Pregrado)', [
+mapaModalidadesPIC.set('V CONVOCATORIA - 2021 MODALIDAD 2: PROYECTOS DE INVESTIGACIÓN DE TESIS DE PREGRADO', [
   'PIC 01-2021 MOD. 02 - V CONV.A',
   'PIC 02-2021 MOD. 02 - V CONV.',
   'PIC 03-2021 MOD. 02 - V CONV.',
@@ -105,47 +105,157 @@ mapaModalidadesPIC.set('PIC 2021 - MOD. 02 (Tesis Pregrado)', [
   'PIC 05-2021 MOD. 02 - V CONV.',
   'PIC 06-2021 MOD. 02 - V CONV.'
 ]);
-// ... (Aquí puedes añadir las demás modalidades de 2021 (Mod. 03, 04) si lo deseas) ...
 
-// --- PIC 2022 ---
-mapaModalidadesPIC.set('PIC 2022 - MOD. 01 (Aplicada)', [
-  'PIC 01-2022 MOD. 01 - VI CONV.',
-  'PIC 02-2022 MOD. 01 - VI CONV.',
-  'PIC 03-2022 MOD. 01 - VI CONV.',
-  'PIC 04-2022 MOD. 01 - VI CONV.'
+mapaModalidadesPIC.set(
+  'V CONVOCATORIA - 2021 MODALIDAD 3: PROYECTOS DE INVESTIGACIÓN DE TESIS DE POSGRADO',[
+    'PIC 01-2021 MOD. 03 - V CONV.',
+    'PIC 02-2021 MOD. 03 - V CONV.',
+    'PIC 03-2021 MOD. 03 - V CONV.',
+    'PIC 04-2021 MOD. 03 - V CONV.',
+    'PIC 05-2021 MOD. 03 - V CONV.',
+    'PIC 06-2021 MOD. 03 - V CONV.',
+    'PIC 07-2021 MOD. 03 - V CONV.',
+    'PIC 08-2021 MOD. 03 - V CONV.',
+    'PIC 09-2021 MOD. 03 - V CONV.',
+    'PIC 10-2021 MOD. 03 - V CONV.',
+    'PIC 11-2021 MOD. 03 - V CONV.',
+    'PIC 12-2021 MOD. 03 - V CONV.',
+    'PIC 13-2021 MOD. 03 - V CONV.',
+    'PIC 14-2021 MOD. 03 - V CONV.',
+    'PIC 15-2021 MOD. 03 - V CONV.',
 ]);
-mapaModalidadesPIC.set('PIC 2022 - MOD. 02 (Consolidado y Emergente)', [
+
+mapaModalidadesPIC.set(
+  'V CONVOCATORIA - 2021 MODALIDAD 4: PROYECTOS DE PUBLICACIONES',
+  [
+    'PIC 01-2021 MOD. 04 - V CONV.',
+    'PIC 02-2021 MOD. 04 - V CONV.',
+    'PIC 03-2021 MOD. 04 - V CONV.',
+    'PIC 04-2021 MOD. 04 - V CONV.',
+    'PIC 05-2021 MOD. 04 - V CONV.',
+    'PIC 06-2021 MOD. 04 - V CONV.',
+    'PIC 07-2021 MOD. 04 - V CONV.',
+    'PIC 08-2021 MOD. 04 - V CONV.',
+    'PIC 09-2021 MOD. 04 - V CONV.',
+    'PIC 10-2021 MOD. 04 - V CONV.',
+    'PIC 11-2021 MOD. 04 - V CONV.',
+    'PIC 12-2021 MOD. 04 - V CONV.',
+    'PIC 13-2021 MOD. 04 - V CONV.',
+    'PIC 14-2021 MOD. 04 - V CONV.',
+    'PIC 15-2021 MOD. 04 - V CONV.',
+    'PIC 16-2021 MOD. 04 - V CONV.',
+    'PIC 17-2021 MOD. 04 - V CONV.',
+    'PIC 18-2021 MOD. 04 - V CONV.',
+    'PIC 19-2021 MOD. 04 - V CONV.',
+    'PIC 20-2021 MOD. 04 - V CONV.',
+    'PIC 21-2021 MOD. 04 - V CONV.',
+    'PIC 22-2021 MOD. 04 - V CONV.',
+  ],
+);
+
+mapaModalidadesPIC.set('V CONVOCATORIA - 2021 MODALIDAD MODALIDAD 4-II: PROYECTOS DE INVESTIGACIÓN PUBLICACIONES (LIBROS)', [
+  'PIC 23-2021 MOD. 04-II - V CONV.',
+  'PIC 24-2021 MOD. 04-II - V CONV.'
+]);
+
+mapaModalidadesPIC.set(
+  'VI CONVOCATORIA - 2022 MODALIDAD 1: PROYECTOS DE INVESTIGACIÓN APLICADA',
+  [
+    'PIC 01-2022 MOD. 01 - VI CONV.',
+    'PIC 02-2022 MOD. 01 - VI CONV.',
+    'PIC 03-2022 MOD. 01 - VI CONV.',
+    'PIC 04-2022 MOD. 01 - VI CONV.',
+  ],
+);
+
+mapaModalidadesPIC.set('VI CONVOCATORIA - 2022 MODALIDAD 2: CATEGORIAS CONSOLIDADO Y POR CONSOLIDAR', [
   'PIC 01-2022 MOD. 02 - VI CONV.',
   'PIC 02-2022 MOD. 02 - VI CONV.',
-  'PIC 03-2022 MOD. 02 - VI CONV.',
-  'PIC 04-2022 MOD. 02 - VI CONV.'
-]);
-mapaModalidadesPIC.set('PIC 2022 - EMBLEMATICO', [
-  'PIC 01-2023 - EMBLEMATICO',
-  'PIC 02-2023 - EMBLEMATICO',
-  'PIC 03-2023 -EMBLEMATICO '
 ]);
 
-// --- PIC 2023 ---
-mapaModalidadesPIC.set('PIC 2023 - MOD. 01 (Científica)', [
-  'PIC 01-2023 MOD. 01 - VII CONV.',
-  'PIC 02-2023 MOD. 01 - VII CONV.',
-  'PIC 03-2023 MOD. 01 - VII CONV.',
-  'PIC 04-2023 MOD. 01 - VII CONV.',
-  'PIC 05-2023 MOD. 01 - VII CONV.',
-  'PIC 06-2023 MOD. 01 - VII CONV.',
-  'PIC 07-2023 MOD. 01 - VII CONV.',
-  'PIC 08-2023 MOD. 01 - VII CONV.'
+mapaModalidadesPIC.set('VI CONVOCATORIA - 2022 MODALIDAD 2: CATEGORIA EMERGENTE', [
+  'PIC 03-2022 MOD. 02 - VI CONV.',
+  'PIC 04-2022 MOD. 02 - VI CONV.',
 ]);
-mapaModalidadesPIC.set('PIC 2023 - MOD. 03 (Emblemática)', [
-  'PIC 01-2023 MOD. 03 - VII CONV.',
-  'PIC 02-2023 MOD. 03 - VII CONV.',
-  'PIC 03-2023 MOD. 03 - VII CONV.',
-  'PIC 04-2023 MOD. 03 - VII CONV.',
-  'PIC 05-2023 MOD. 03 - VII CONV.',
-  'PIC 06-2023 MOD. 03 - VII CONV.',
-  'PIC 07-2023 MOD. 03 - VII CONV.',
+
+mapaModalidadesPIC.set('VI CONVOCATORIA - 2022 MODALIDAD: PROYECTOS EMBLEMATICO', [
+  'PIC 01-2023 - EMBLEMATICO',
+  'PIC 02-2023 - EMBLEMATICO',
+  'PIC 03-2023 -EMBLEMATICO ',
 ]);
+
+mapaModalidadesPIC.set(
+  'VII CONVOCATORIA - 2023 MODALIDAD: 01 - PROY. INVESTIGACION CIENTIFICA',
+  [
+    'PIC 01-2023 MOD. 01 - VII CONV.',
+    'PIC 02-2023 MOD. 01 - VII CONV.',
+    'PIC 03-2023 MOD. 01 - VII CONV.',
+    'PIC 04-2023 MOD. 01 - VII CONV.',
+    'PIC 05-2023 MOD. 01 - VII CONV.',
+    'PIC 06-2023 MOD. 01 - VII CONV.',
+    'PIC 07-2023 MOD. 01 - VII CONV.',
+    'PIC 08-2023 MOD. 01 - VII CONV.',
+  ],
+);
+
+mapaModalidadesPIC.set('VII CONVOCATORIA - 2023 MODALIDAD: 02 - EN CIENCIAS SOCIALES', [
+  'PIC 01-2023 MOD. 02 - VII CONV.',
+  'PIC 02-2023 MOD. 02 - VII CONV.',
+]);
+
+mapaModalidadesPIC.set(
+  'VII CONVOCATORIA - 2023 MODALIDAD: 03 - PROY. INVESTIGACION EMBLEMATICA',
+  [
+    'PIC 01-2023 MOD. 03 - VII CONV.',
+    'PIC 02-2023 MOD. 03 - VII CONV.',
+    'PIC 03-2023 MOD. 03 - VII CONV.',
+    'PIC 04-2023 MOD. 03 - VII CONV.',
+    'PIC 05-2023 MOD. 03 - VII CONV.',
+    'PIC 06-2023 MOD. 03 - VII CONV.',
+    'PIC 07-2023 MOD. 03 - VII CONV.',
+  ],
+);
+
+
+mapaModalidadesPIC.set('VIII CONVOCATORIA - 2024 MODALIDAD: 01 - PROY. INVESTIGACION CIENTIFICA', [
+  'PIC 01-2024 MOD. 01 - VIII CONV.',
+  'PIC 02-2024 MOD. 01 - VIII CONV.',
+]);
+
+
+mapaModalidadesPIC.set(
+  'VIII CONVOCATORIA - 2024 MODALIDAD: 02 - PROY. INVESTIGACION CIENTIFICA',
+  [
+    'PIC 01-2024 MOD. 02 - VIII CONV.',
+    'PIC 02-2024 MOD. 02 - VIII CONV.',
+    'PIC 03-2024 MOD. 02 - VIII CONV.',
+    'PIC 04-2024 MOD. 02 - VIII CONV.',
+    'PIC 05-2024 MOD. 02 - VIII CONV.',
+    'PIC 06-2024 MOD. 02 - VIII CONV.',
+    'PIC 07-2024 MOD. 02 - VIII CONV.',
+    'PIC 08-2024 MOD. 02 - VIII CONV.',
+    'PIC 09-2024 MOD. 02 - VIII CONV.',
+    'PIC 10-2024 MOD. 02 - VIII CONV.',
+    'PIC 11-2024 MOD. 02 - VIII CONV.',
+    'PIC 12-2024 MOD. 02 - VIII CONV.',
+    'PIC 13-2024 MOD. 02 - VIII CONV.',
+    'PIC 14-2024 MOD. 02 - VIII CONV.',
+    'PIC 15-2024 MOD. 02 - VIII CONV.',
+    'PIC 16-2024 MOD. 02 - VIII CONV.',
+    'PIC 17-2024 MOD. 02 - VIII CONV.',
+  ],
+);
+
+
+mapaModalidadesPIC.set(
+  'VIII CONVOCATORIA - 2024 MODALIDAD: 03 - PROY. INVESTIGACION CIENTIFICA',
+  [
+    'PIC 01-2024 MOD. 03 - VIII CONV.',
+    'PIC 02-2024 MOD. 03 - VIII CONV.',
+    'PIC 03-2024 MOD. 03 - VIII CONV.',
+    'PIC 04-2024 MOD. 03 - VIII CONV.',
+  ],
+);
 
 @Injectable()
 export class AppService {
@@ -229,6 +339,29 @@ export class AppService {
   // --- FIN DE MÉTODOS DE GESTIÓN DE DATOS ---
 
 
+
+  /**
+   * NUEVA FUNCIÓN
+   * Obtiene la "lista maestra" de TODOS los proyectos PIC definidos en el mapa.
+   */
+  async getMasterPicProjectList(): Promise<string[]> {
+    const allProjectsSet = new Set<string>();
+
+    // Itera sobre el mapa y añade cada proyecto de cada modalidad
+    mapaModalidadesPIC.forEach((projectList) => {
+      projectList.forEach(projectName => {
+        // .trim() por si hay algún espacio extra
+        allProjectsSet.add(projectName.trim()); 
+      });
+    });
+
+    // Convertir a array y ordenar alfabéticamente
+    const allProjectsArray = Array.from(allProjectsSet);
+    allProjectsArray.sort((a, b) => a.localeCompare(b));
+    
+    return allProjectsArray;
+  }
+
   /**
    * Obtiene la metadata guardada para un proyecto PIC específico.
    */
@@ -255,7 +388,7 @@ export class AppService {
       Object.assign(metadata, data);
     } else {
       // 3. Si no existe, creamos una nueva entidad
-      metadata = this.picMetadataRepository.create({projectName });
+      metadata = this.picMetadataRepository.create(data);
     }
 
     // 4. Guardar los cambios en la base de datos
@@ -1916,5 +2049,35 @@ private clasificarGastosParaConsolidado(
   }
   // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
+  async update(id: number, gastoData: Partial<Gasto>): Promise<Gasto> {
+    // Primero busca el gasto para asegurarse de que existe
+    const gasto = await this.gastoRepository.findOneBy({ id });
+    if (!gasto) {
+      throw new Error(`Gasto con ID ${id} no encontrado.`);
+    }
+    // Asigna los nuevos datos al gasto encontrado
+    Object.assign(gasto, gastoData);
+    
+    // Guarda y devuelve el gasto actualizado
+    return this.gastoRepository.save(gasto);
+  }
   
+  /**
+   * Elimina un gasto por su ID.
+   */
+  async delete(id: number): Promise<void> {
+    const result = await this.gastoRepository.delete(id);
+    if (result.affected === 0) {
+      throw new Error(`Gasto con ID ${id} no encontrado.`);
+    }
+  }
+
+  /**
+   * Elimina TODOS los gastos de la base de datos.
+   */
+  async deleteAll(): Promise<void> {
+    // Esto borra todos los registros de la tabla 'Gasto'
+    await this.gastoRepository.clear();
+  }
+
 }

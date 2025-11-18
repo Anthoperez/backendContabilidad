@@ -53,6 +53,14 @@ export class AppController {
     return this.appService.findPicProjects();
   }
 
+  /**
+   * NUEVO ENDPOINT
+   * Devuelve la "lista maestra" de TODOS los PICs definidos.
+   */
+  @Get('projects/pic-master-list')
+  findMasterPicList(): Promise<string[]> {
+    return this.appService.getMasterPicProjectList();
+  }
 
   // ▼▼▼ 3. AÑADIR LOS NUEVOS ENDPOINTS PARA METADATA DE PIC ▼▼▼
 
@@ -171,6 +179,36 @@ export class AppController {
     res.end();
   }
   // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
+
+  /**
+   * ACTUALIZAR un gasto por ID
+   */
+  @Put('gastos/:id')
+  update(
+    @Param('id') id: number,
+    @Body() gastoData: Partial<Gasto>,
+  ): Promise<Gasto> {
+    // El '+' convierte el string 'id' de la URL a un número
+    return this.appService.update(+id, gastoData);
+  }
+
+  /**
+   * ELIMINAR TODOS los gastos (General)
+   */
+  @Delete('gastos/all')
+  deleteAll(): Promise<void> {
+    return this.appService.deleteAll();
+  }
+  
+  /**
+   * ELIMINAR un gasto por ID
+   */
+  @Delete('gastos/:id')
+  delete(@Param('id') id: string): Promise<void> {
+    return this.appService.delete(+id);
+  }
+
+  
 
   
 }

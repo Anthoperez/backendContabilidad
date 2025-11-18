@@ -34,11 +34,11 @@ export class PicMetadata {
   investigador: string;
 
   @Column({ nullable: true })
-  duracion: string;
+  duracion: string ;
 
   // Este es el 'PRESUPUESTO' del "cuadro rojo"
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
-  presupuestoTotal: number;
+  presupuestoTotal: number | null;
 
   // Guardamos el array de ingresos como un JSON
   @Column('jsonb', { nullable: true })
