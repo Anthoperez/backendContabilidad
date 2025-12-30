@@ -34,6 +34,12 @@ export class PicMetadata {
   investigador: string;
 
   @Column({ nullable: true })
+  tesista: string;
+
+  @Column({ nullable: true })
+  asesor: string;
+
+  @Column({ nullable: true })
   duracion: string ;
 
   // Este es el 'PRESUPUESTO' del "cuadro rojo"

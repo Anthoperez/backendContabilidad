@@ -13,6 +13,8 @@ const mapaModalidadesPIC = new Map<string, string[]>();
 export interface PicMetadataDto {
   projectName: string;
   investigador?: string;
+  tesista?: string;
+  asesor?: string;
   duracion?: string;
   presupuestoTotal?: number | null;
   ingresos?: IngresoPic[];
@@ -32,6 +34,8 @@ interface GastoAnoAnterior {
 
 // ▼▼▼ INTERFAZ ReportMetadata AMPLIADA (Sin cambios desde la última vez) ▼▼▼
 interface ReportMetadata {
+  tituloProyecto?: string;
+  codigoProyecto?: string;
   investigador?: string;
   rr_investigador?: string;
   fechaInicio?: string;
@@ -657,11 +661,21 @@ private clasificarGastosParaConsolidado(
     let currentRow = 1;
 
     // ... (Título principal) ...
-    worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
+    worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
     worksheet.getCell(`A${currentRow}`).value = 'EJECUCIÓN DE GASTOS DEL PROYECTO DE INVESTIGACIÓN - PROCIENCIA';
     worksheet.getCell(`A${currentRow}`).style = titleStyle;
     currentRow++;
     currentRow++;
+
+    if (metadata.tituloProyecto) {
+      worksheet.mergeCells(`A${currentRow}:H${currentRow}`); // Ocupar todo el ancho
+      worksheet.getCell(`A${currentRow}`).value = metadata.tituloProyecto;
+      worksheet.getCell(`A${currentRow}`).alignment = { wrapText: true, horizontal: 'center', vertical: 'middle' };
+      worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 14 };
+      // Ajustar altura de fila si el texto es largo (aproximación)
+      worksheet.getRow(currentRow).height = 45; 
+      currentRow++; 
+    }
 
     // ... (Título del proyecto) ...
     worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
@@ -669,6 +683,12 @@ private clasificarGastosParaConsolidado(
     worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 11 };
     currentRow+=2;
 
+    if (metadata.codigoProyecto) {
+      worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
+      worksheet.getCell(`A${currentRow}`).value = `Código del Proyecto: ${metadata.codigoProyecto}`;
+      worksheet.getCell(`A${currentRow}`).font = { bold: true };
+      currentRow++;
+    }
     // ... (Fila Investigador y Fecha Inicio) ...
     worksheet.getCell(`A${currentRow}`).value = 'INVESTIGADOR:';
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
@@ -1518,6 +1538,19 @@ private clasificarGastosParaConsolidado(
       worksheet.getCell(`A${currentRow}`).value = `Investigador: ${metadata.investigador || ''}`;
       worksheet.getCell(`A${currentRow}`).font = { bold: true };
       currentRow++;
+      // 2. Tesista (Solo si existe en metadata)
+      if (metadata.tesista) {
+        worksheet.getCell(`A${currentRow}`).value = `Tesista: ${metadata.tesista}`;
+        worksheet.getCell(`A${currentRow}`).font = { bold: true };
+        currentRow++;
+      }
+
+      // 3. Asesor (Solo si existe en metadata)
+      if (metadata.asesor) {
+        worksheet.getCell(`A${currentRow}`).value = `Asesor: ${metadata.asesor}`;
+        worksheet.getCell(`A${currentRow}`).font = { bold: true };
+        currentRow++;
+      }
       worksheet.getCell(`A${currentRow}`).value = `Duración: ${metadata.duracion || ''}`;
       worksheet.getCell(`A${currentRow}`).font = { bold: true };
       currentRow++;
