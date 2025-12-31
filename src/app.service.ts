@@ -1186,13 +1186,22 @@ private clasificarGastosParaConsolidado(
   // --- Cabeceras de Columnas (las 14 columnas de tu ejemplo) ---
   const headers = [
     'DOC','N°','SIAF','A NOMBRE DE','CONCEPTO','MONTO','ESPECIFICA',
-    'MONTO2','ESPECIFICA2','F.F.','MES','F. DEVENGADO','PROYECTO','META'
+    'MONTO2','ESPECIFICA2','F.F.','MES','F. DEVENGADO','PROYECTO','META',
+    'CERT. VIATICO', 'DESTINO', 'F. SALIDA', 'F. RETORNO'
   ];
   // Mapeo de claves de objeto Gasto al orden de las cabeceras
   const headerKeys = [
     'tipoDocumento', 'numeroDocumento', 'siaf', 'aNombreDe', 'concepto', 'monto', 'especifica',
-    'monto2', 'especifica2', 'ff', 'mes', 'fechaDevengado', 'proyecto', 'meta'
+    'monto2', 'especifica2', 'ff', 'mes', 'fechaDevengado', 'proyecto', 'meta',
+    'certificacionViatico', 'destino', 'fechaSalida', 'fechaRetorno'
   ];
+
+  // Indices de columnas para aplicar formatos (Excel empieza en 1)
+    const montoColIndex = 6; 
+    const monto2ColIndex = 8;
+    const fDevengadoIndex = 12;
+    const fSalidaIndex = 17;  
+    const fRetornoIndex = 18;
 
   // --- Títulos de la Hoja ---
   let currentRow = 1;
@@ -1208,6 +1217,7 @@ private clasificarGastosParaConsolidado(
   worksheet.getCell(`A${currentRow}`).alignment = { horizontal: 'center' };
   currentRow++;
   currentRow++; // Dejar fila en blanco
+
 
   // --- 1. Escribir las Cabeceras de Columna UNA SOLA VEZ ---
   const headerRow = worksheet.getRow(currentRow);
@@ -1226,8 +1236,7 @@ private clasificarGastosParaConsolidado(
 
   const filasVaciasPorDefecto = 4;
   let totalGeneral = 0;
-  const montoColIndex = 6; // 'MONTO' es la 6ta columna
-  const monto2ColIndex = 8; // 'MONTO2' es la 8va columna
+ 
 
   // --- 2. Iterar sobre las secciones de datos ---
   for (const section of sections) {
@@ -1275,14 +1284,14 @@ private clasificarGastosParaConsolidado(
         // Aplicar formatos especiales
         if (colNumber === montoColIndex || colNumber === monto2ColIndex) {
           cell.numFmt = moneyFormat;
-        } else if (colNumber === 12) { // F. DEVENGADO
+        } else if (colNumber === fDevengadoIndex || colNumber === fSalidaIndex || colNumber === fRetornoIndex) { // F. DEVENGADO
           cell.numFmt = dateFormat;
           // Corregir la fecha si es una cadena (viene de la BD como Fecha)
           if (cell.value && typeof cell.value === 'string') {
             cell.value = new Date(cell.value);
           }
-        } else if (colNumber === 4 || colNumber === 5 || colNumber === 13) { // A NOMBRE DE, CONCEPTO, PROYECTO
-          cell.style = wrapTextStyle;
+        } else if ([4, 5, 13, 16].includes(colNumber)) { // A NOMBRE DE, CONCEPTO, PROYECTO
+          cell.alignment = { ...cellStyle.alignment, wrapText: false };
         } else if (colNumber === 2 || colNumber === 3) { // N° y SIAF
           cell.numFmt = '@'; // Forzar texto
         }
@@ -1338,7 +1347,7 @@ private clasificarGastosParaConsolidado(
       { width: 12 }, // N°
       { width: 12 }, // SIAF
       { width: 35 }, // A NOMBRE DE
-      { width: 50 }, // CONCEPTO
+      { width: 35 }, // CONCEPTO
       { width: 15 }, // MONTO
       { width: 15 }, // ESPECIFICA
       { width: 15 }, // MONTO2
@@ -1347,7 +1356,11 @@ private clasificarGastosParaConsolidado(
       { width: 10 }, // MES
       { width: 15 }, // F. DEVENGADO
       { width: 30 }, // PROYECTO
-      { width: 10 }  // META
+      { width: 10 },  // META
+      { width: 15 }, // CERT. VIATICO (Nuevo)
+      { width: 20 }, // DESTINO (Nuevo)
+      { width: 14 }, // F. SALIDA (Nuevo)
+      { width: 14 }  // F. RETORNO (Nuevo)
     ];
 }
 
