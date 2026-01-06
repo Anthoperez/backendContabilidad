@@ -34,6 +34,7 @@ interface GastoAnoAnterior {
 
 // ▼▼▼ INTERFAZ ReportMetadata AMPLIADA (Sin cambios desde la última vez) ▼▼▼
 interface ReportMetadata {
+  anio?: number;
   tituloProyecto?: string;
   codigoProyecto?: string;
   investigador?: string;
@@ -643,6 +644,9 @@ private clasificarGastosParaConsolidado(
       vertical: 'middle',
     };
 
+    const reportYear = metadata.anio || 2025; 
+    const previousYear = reportYear - 1;
+
     // Definir anchos de columna
     worksheet.columns = [
       { width: 20 }, // A: Descripción / Mes/Año
@@ -827,7 +831,7 @@ private clasificarGastosParaConsolidado(
     // ▼▼▼ MODIFICACIÓN AQUÍ ▼▼▼
     let currentTotalIngresos = 0;
     // Obtenemos el año actual (ej: "2025") para filtrar
-    const currentYearString = String(new Date().getFullYear());
+    const currentYearString = String(reportYear);
     // ▲▲▲ FIN DE LA MODIFICACIÓN ▲▲▲
 
     if (metadata.ingresos && metadata.ingresos.length > 0) {
@@ -919,7 +923,7 @@ private clasificarGastosParaConsolidado(
     // ▼▼▼ CORRECCIÓN ERROR 2 ▼▼▼
     // Proporcionamos un objeto default completo si metadata.gastosAnoAnterior es nulo
     const gastosAnoAnterior = gastoAno || {
-      year: new Date().getFullYear() - 1,
+      year: previousYear,
       bienesCorrientes: null,
       bienesCapital: null,
       servicios: null,
@@ -967,7 +971,7 @@ private clasificarGastosParaConsolidado(
 }else {
   // (Comportamiento anterior si el array está vacío: imprime una fila por defecto)
       
-      worksheet.getCell(`A${currentRow}`).value = `AÑO ${new Date().getFullYear() - 1}`;
+      worksheet.getCell(`A${currentRow}`).value = `AÑO ${reportYear - 1}`;
       // ... (el resto de las celdas quedan vacías/nulas)
       worksheet.getRow(currentRow).eachCell({ includeEmpty: true }, (cell) => {
         cell.border = allBorders;
@@ -1050,7 +1054,7 @@ private clasificarGastosParaConsolidado(
 
       const row = worksheet.getRow(currentRow);
       
-      worksheet.getCell(`A${currentRow}`).value = `${monthShort} - ${new Date().getFullYear()}`;
+      worksheet.getCell(`A${currentRow}`).value = `${monthShort} - ${reportYear}`;
       // ▼▼▼ CORRECCIÓN ERROR 3 (Uso) ▼▼▼
       worksheet.getCell(`B${currentRow}`).value = data.bienesCorrientes || null;
       worksheet.getCell(`C${currentRow}`).value = data.bienesCapital || null;
@@ -1081,7 +1085,7 @@ private clasificarGastosParaConsolidado(
 
     // ... (Fila TOTALES DEL AÑO ACTUAL (2025)) ...
     
-    worksheet.getCell(`A${currentRow}`).value = `AÑO ${new Date().getFullYear()}`;
+    worksheet.getCell(`A${currentRow}`).value = `AÑO ${reportYear}`;
     worksheet.getCell(`A${currentRow}`).font = { bold: true };
     worksheet.getCell(`B${currentRow}`).value = currentYearGastosTotals.bienesCorrientes || null;
     worksheet.getCell(`C${currentRow}`).value = currentYearGastosTotals.bienesCapital || null;
@@ -1099,7 +1103,7 @@ private clasificarGastosParaConsolidado(
 
     // ... (Fila TOTAL GASTOS (GLOBAL)) ...
     
-    worksheet.getCell(`A${currentRow}`).value = 'TOTAL GASTOS - 2025';
+    worksheet.getCell(`A${currentRow}`).value = `TOTAL GASTOS - ${reportYear}`;
     worksheet.getCell(`A${currentRow}`).font = { bold: true};
     worksheet.getCell(`B${currentRow}`).value = previousYearsGastosTotals.bienesCorrientes + currentYearGastosTotals.bienesCorrientes;
     worksheet.getCell(`C${currentRow}`).value = previousYearsGastosTotals.bienesCapital + currentYearGastosTotals.bienesCapital;
@@ -1119,7 +1123,7 @@ private clasificarGastosParaConsolidado(
 
     // ... (SALDO AL AÑO) ...
     worksheet.mergeCells(`A${currentRow}:G${currentRow}`);
-    worksheet.getCell(`A${currentRow}`).value = `SALDO AL AÑO ${new Date().getFullYear()}`;
+    worksheet.getCell(`A${currentRow}`).value = `SALDO AL AÑO ${reportYear}`;
     worksheet.getCell(`A${currentRow}`).style.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'c9c9c9' } };
     worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 14 };
     const saldo = currentTotalIngresos - (currentYearGastosTotals.totalMes);
@@ -1509,6 +1513,8 @@ private clasificarGastosParaConsolidado(
       horizontal: 'center',
       vertical: 'middle',
     };
+
+    const reportYear = 2025;
     
     // --- Título global (sin cambios) ---
     worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
@@ -1679,7 +1685,7 @@ private clasificarGastosParaConsolidado(
       // Fila de GASTO TOTAL AL AÑO ANTERIOR
       const saldoAnterior = presupuestoTotal - previousGastosTotals.TOTAL;
       const gastoTotalPrevioRow = worksheet.addRow([
-        `GASTO TOTAL AL ${new Date().getFullYear() - 1}`,
+        `GASTO TOTAL AL ${reportYear - 1}`,
         null,
         ...categories.map(cat => (previousGastosTotals as any)[cat] || 0)
       ]);
@@ -1692,7 +1698,7 @@ private clasificarGastosParaConsolidado(
 
       // Fila de SALDO (ej. SALDO AL 2024)
       const saldoRow = worksheet.addRow([
-        `SALDO AL ${new Date().getFullYear() - 1}`,
+        `SALDO AL ${reportYear - 1}`,
          null, null, null, null, null, null, null,
          saldoAnterior
       ]);
@@ -1710,7 +1716,7 @@ private clasificarGastosParaConsolidado(
         const monthSummary = this.clasificarGastosParaPicConsolidado(gastosDelMes);
         
         const rowData = [
-          `${monthShort} - ${new Date().getFullYear()}`,
+          `${monthShort} - ${reportYear}`,
           null, // Presupuesto
           ...categories.map(cat => monthSummary[cat] || null)
         ];
@@ -1730,7 +1736,7 @@ private clasificarGastosParaConsolidado(
       }
       
       const totalAnoActualRow = worksheet.addRow([
-        `AÑO ${new Date().getFullYear()}`,
+        `AÑO ${reportYear}`,
         null, // Presupuesto
         ...categories.map(cat => (projectTotals as any)[cat] || 0)
       ]);
@@ -1769,7 +1775,7 @@ private clasificarGastosParaConsolidado(
       // --- Fila de SALDO AL AÑO (Año Actual) ---
       const saldoActual = saldoAnterior - projectTotals.TOTAL;
       const saldoActualRow = worksheet.addRow([
-        `SALDO AL AÑO ${new Date().getFullYear()}`,
+        `SALDO AL AÑO ${reportYear}`,
          null, null, null, null, null, null, null,
          saldoActual
       ]);
