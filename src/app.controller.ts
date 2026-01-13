@@ -209,6 +209,84 @@ export class AppController {
   }
 
   
+  
+  /**
+ * Genera reporte simple de un proyecto para un mes específico
+ */
+@Post('reports/project-month')
+async generateProjectMonthReport(
+  @Body() body: { projectName: string; month: string; year?: number },
+  @Res() res: Response,
+) {
+  const { projectName, month, year } = body;
+  
+  if (!projectName || !month) {
+    res.status(400).send('Se requiere nombre del proyecto y mes');
+    return;
+  }
+
+  try {
+    const workbook = await this.appService.generateSimpleMonthlyReport(
+      projectName,
+      month,
+      year || 2025,
+    );
+
+    const safeName = projectName.replace(/[^a-z0-9]/gi, '_');
+    const fileName = `Reporte_${safeName}_${month}_${year || 2025}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+    
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error al generar reporte mensual:', error);
+    res.status(500).send(`Error: ${error.message || error}`);
+  }
+}
+
+/**
+ * Genera reporte simple de un proyecto con todos los meses
+ */
+@Post('reports/project-annual')
+async generateProjectAnnualReport(
+  @Body() body: { projectName: string; year?: number },
+  @Res() res: Response,
+) {
+  const { projectName, year } = body;
+  
+  if (!projectName) {
+    res.status(400).send('Se requiere nombre del proyecto');
+    return;
+  }
+
+  try {
+    const workbook = await this.appService.generateSimpleAnnualReport(
+      projectName,
+      year || 2025,
+    );
+
+    const safeName = projectName.replace(/[^a-z0-9]/gi, '_');
+    const fileName = `Reporte_Anual_${safeName}_${year || 2025}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+    
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error al generar reporte anual:', error);
+    res.status(500).send(`Error: ${error.message || error}`);
+  }
+}
+
 
   
 }
