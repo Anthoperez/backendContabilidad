@@ -649,7 +649,7 @@ export class AppService {
       alignment: { horizontal: 'center' },
     };
     const boldStyle: Partial<ExcelJS.Style> = { font: { bold: true } };
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const moneyFormat = '#,##0.00;[Red]-#,##0.00';
     const borderStyle: Partial<ExcelJS.Border> = {
       style: 'thin',
       color: { argb: 'FF000000' },
@@ -1185,13 +1185,13 @@ export class AppService {
       worksheet.getCell(`A${currentRow}`).value =
         `${monthShort} - ${reportYear}`;
       // ▼▼▼ CORRECCIÓN ERROR 3 (Uso) ▼▼▼
-      worksheet.getCell(`B${currentRow}`).value = data.bienesCorrientes || null;
-      worksheet.getCell(`C${currentRow}`).value = data.bienesCapital || null;
-      worksheet.getCell(`D${currentRow}`).value = data.servicios || null;
-      worksheet.getCell(`E${currentRow}`).value = data.subvencion || null;
-      worksheet.getCell(`F${currentRow}`).value = data.viaticos || null; // <-- CAMPO AÑADIDO
-      worksheet.getCell(`G${currentRow}`).value = data.encargoInterno || null; // <-- CAMPO AÑADIDO
-      worksheet.getCell(`H${currentRow}`).value = data.totalMes || null; // <-- CAMPO AÑADIDO
+      worksheet.getCell(`B${currentRow}`).value = data.bienesCorrientes || 0;
+      worksheet.getCell(`C${currentRow}`).value = data.bienesCapital || 0;
+      worksheet.getCell(`D${currentRow}`).value = data.servicios || 0;
+      worksheet.getCell(`E${currentRow}`).value = data.subvencion || 0;
+      worksheet.getCell(`F${currentRow}`).value = data.viaticos || 0; // <-- CAMPO AÑADIDO
+      worksheet.getCell(`G${currentRow}`).value = data.encargoInterno || 0; // <-- CAMPO AÑADIDO
+      worksheet.getCell(`H${currentRow}`).value = data.totalMes || 0; // <-- CAMPO AÑADIDO
       // ▲▲▲ FIN CORRECCIÓN ERROR 3 (Uso) ▲▲▲
 
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -1350,7 +1350,7 @@ export class AppService {
     };
     const totalAmountStyle: Partial<ExcelJS.Style> = {
       ...totalRowStyle,
-      numFmt: '"S/" #,##0.00;[Red]-"S/" #,##0.00',
+      numFmt: '#,##0.00;[Red]-#,##0.00',
       alignment: { horizontal: 'left' }, // Para que el S/ quede pegado al número
       fill: {
         type: 'pattern',
@@ -1384,7 +1384,7 @@ export class AppService {
       ...cellStyle,
       alignment: { ...cellStyle.alignment, wrapText: true },
     };
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const moneyFormat = '#,##0.00;[Red]-#,##0.00';
     const dateFormat = 'dd/mm/yyyy';
 
     // --- Cabeceras de Columnas (las 14 columnas de tu ejemplo) ---
@@ -1524,6 +1524,7 @@ export class AppService {
 
           // Aplicar formatos especiales
           if (colNumber === montoColIndex || colNumber === monto2ColIndex) {
+            cell.style = cellStyle;
             cell.numFmt = moneyFormat;
           } else if (
             colNumber === fDevengadoIndex ||
@@ -1737,13 +1738,59 @@ export class AppService {
       font: { bold: true, size: 12 },
     };
     const boldStyle: Partial<ExcelJS.Style> = { font: { bold: true } };
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+
     const allBorders: Partial<ExcelJS.Borders> = {
       top: { style: 'thin' },
       left: { style: 'thin' },
       bottom: { style: 'thin' },
       right: { style: 'thin' },
     };
+    // --- NUEVOS ESTILOS CON COLORES PARA TOTALES ---
+    const totalMonthStyle: Partial<ExcelJS.Style> = {
+      font: { bold: true },
+      border: allBorders,
+      alignment: { horizontal: 'center', vertical: 'middle' },
+      fill: {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD9E1F2' }, // Azul muy claro
+      },
+    };
+
+    const totalYearStyle: Partial<ExcelJS.Style> = {
+      font: { bold: true },
+      border: allBorders,
+      alignment: { horizontal: 'center', vertical: 'middle' },
+      fill: {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFC6E0B4' }, // Verde claro
+      },
+    };
+
+    const totalGeneralStyle: Partial<ExcelJS.Style> = {
+      font: { bold: true },
+      border: allBorders,
+      alignment: { horizontal: 'center', vertical: 'middle' },
+      fill: {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFFF00' }, // Amarillo
+      },
+    };
+
+    const saldoStyle: Partial<ExcelJS.Style> = {
+      font: { bold: true },
+      border: allBorders,
+      alignment: { horizontal: 'center', vertical: 'middle' },
+      fill: {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFD966' }, // Naranja claro
+      },
+    };
+    const moneyFormat = '#,##0.00;[Red]-#,##0.00';
+    const numberFormat = '#,##0.00;[Red]-#,##0.00'; // Sin símbolo S/
     const headerStyle: Partial<ExcelJS.Style> = {
       font: { bold: true },
       border: allBorders,
@@ -1864,7 +1911,7 @@ export class AppService {
           worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
           worksheet.getCell(`A${currentRow}`).value = ingreso.descripcion || '';
           worksheet.getCell(`I${currentRow}`).value = monto || null;
-          worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
+          worksheet.getCell(`I${currentRow}`).numFmt = numberFormat;
           totalIngresos += monto;
           currentRow++;
         });
@@ -1879,7 +1926,7 @@ export class AppService {
       worksheet.getCell(`A${currentRow}`).value = 'TOTAL INGRESOS';
       worksheet.getCell(`A${currentRow}`).font = { bold: true };
       worksheet.getCell(`I${currentRow}`).value = totalIngresos || null;
-      worksheet.getCell(`I${currentRow}`).numFmt = moneyFormat;
+      worksheet.getCell(`I${currentRow}`).numFmt = numberFormat;
       worksheet.getCell(`I${currentRow}`).font = { bold: true };
       currentRow++;
       currentRow++; // Espacio
@@ -1916,7 +1963,7 @@ export class AppService {
       const presupuestoTotal = Number(metadata.presupuestoTotal) || 0;
       const presupuestoRow = worksheet.getRow(currentRow);
       presupuestoRow.getCell(2).value = presupuestoTotal || null; // Columna B
-      presupuestoRow.getCell(2).numFmt = moneyFormat;
+      presupuestoRow.getCell(2).numFmt = numberFormat;
       presupuestoRow.getCell(2).font = { bold: true };
       currentRow++;
 
@@ -1956,7 +2003,7 @@ export class AppService {
           row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
             cell.border = allBorders;
             if (colNumber > 2) {
-              cell.numFmt = moneyFormat;
+              cell.numFmt = numberFormat;
               if (!cell.value) cell.value = 0;
             }
           });
@@ -1977,18 +2024,26 @@ export class AppService {
         });
       }
 
+      currentRow += 2;
+
       // Fila de GASTO TOTAL AL AÑO ANTERIOR
       const totalAnteriorRow = worksheet.addRow([
         `GASTO TOTAL AL ${reportYear - 1}`,
         null,
         ...categories.map((cat) => (previousGastosTotals as any)[cat] || 0),
       ]);
-      totalAnteriorRow.font = { bold: true };
       totalAnteriorRow.eachCell({ includeEmpty: true }, (cell, col) => {
-        cell.border = allBorders;
-        if (col > 2) {
-          cell.numFmt = moneyFormat;
+        if (col === 1) {
+          // Etiqueta
+          cell.font = { bold: true };
+          cell.border = allBorders;
+        } else if (col > 2) {
+          // Celdas de montos
+          cell.numFmt = numberFormat;
           if (!cell.value) cell.value = 0;
+          cell.style = totalYearStyle; // Verde claro
+        } else {
+          cell.border = allBorders;
         }
       });
       currentRow++;
@@ -2010,9 +2065,19 @@ export class AppService {
         null,
         saldoAnterior,
       ]);
-      saldoAnteriorRow.font = { bold: true };
-      saldoAnteriorRow.getCell(9).numFmt = moneyFormat;
-      saldoAnteriorRow.eachCell((cell) => (cell.border = allBorders));
+      saldoAnteriorRow.eachCell({ includeEmpty: true }, (cell, col) => {
+        if (col === 1) {
+          // Etiqueta
+          cell.font = { bold: true };
+          cell.border = allBorders;
+        } else if (col === 9) {
+          // Celda del saldo
+          cell.numFmt = numberFormat;
+          cell.style = saldoStyle; // Naranja claro
+        } else {
+          cell.border = allBorders;
+        }
+      });
       currentRow++;
 
       // --- Resumen por Mes (Año Actual) ---
@@ -2033,7 +2098,7 @@ export class AppService {
         row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
           cell.border = allBorders;
           if (colNumber > 2) {
-            cell.numFmt = moneyFormat;
+            cell.numFmt = numberFormat;
             if (!cell.value) cell.value = 0;
           }
         });
@@ -2056,11 +2121,13 @@ export class AppService {
       anioActualRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         cell.border = allBorders;
         if (colNumber > 2) {
-          cell.numFmt = moneyFormat;
           if (!cell.value) cell.value = 0;
+          cell.style = totalYearStyle; // Verde claro
+          cell.numFmt = numberFormat;
         }
       });
       currentRow++;
+      currentRow += 2;
 
       // Fila TOTAL GASTOS (Previo + Actual)
       const totalGeneralRow = worksheet.addRow([
@@ -2076,8 +2143,9 @@ export class AppService {
       totalGeneralRow.eachCell({ includeEmpty: true }, (cell, col) => {
         cell.border = allBorders;
         if (col > 2) {
-          cell.numFmt = moneyFormat;
           if (!cell.value) cell.value = 0;
+          cell.style = totalGeneralStyle; // Amarillo
+          cell.numFmt = numberFormat;
         }
       });
       currentRow++;
@@ -2096,7 +2164,11 @@ export class AppService {
         saldoFinal,
       ]);
       saldoFinalRow.font = { bold: true };
-      saldoFinalRow.getCell(9).numFmt = moneyFormat;
+      saldoFinalRow.eachCell({ includeEmpty: true }, (cell) => {
+        cell.style = saldoStyle; // Naranja claro
+      });
+      saldoFinalRow.getCell(9).numFmt = numberFormat;
+
       currentRow += 2;
     }
 
@@ -2124,7 +2196,7 @@ export class AppService {
       worksheet.mergeCells(`H${currentRow}:I${currentRow}`); // Valor
       const valueCell = worksheet.getCell(`H${currentRow}`);
       valueCell.value = value;
-      valueCell.numFmt = moneyFormat;
+      valueCell.numFmt = numberFormat;
       valueCell.font = { bold: true, size: 12 };
       valueCell.alignment = { horizontal: 'center', vertical: 'middle' };
       valueCell.border = allBorders;
@@ -2170,7 +2242,7 @@ export class AppService {
       },
       alignment: { horizontal: 'center' },
     };
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const numberFormat = '#,##0.00;[Red]-#,##0.00'; // Sin símbolo S/
     const textFormat = '@';
     const monthTotalStyle: Partial<ExcelJS.Font> = { bold: true };
 
@@ -2279,14 +2351,15 @@ export class AppService {
             this.clasificarGastoPic(g.especifica) === category,
         );
 
+        
         if (gastosDelMes.length > 0) {
           for (const gasto of gastosDelMes) {
             const rowData = detailKeys.map((key) => (gasto as any)[key]);
             const row = worksheet.addRow(rowData);
 
             // Aplicar formatos
-            row.getCell(importeColIndex).numFmt = moneyFormat; // IMPORTE
-            row.getCell(importe1ColIndex).numFmt = moneyFormat; // IMPORTE1
+            row.getCell(importeColIndex).numFmt = numberFormat; // IMPORTE
+            row.getCell(importe1ColIndex).numFmt = numberFormat; // IMPORTE1
             row.getCell(2).numFmt = textFormat; // N°
             row.getCell(3).numFmt = textFormat; // SIAF
 
@@ -2303,9 +2376,9 @@ export class AppService {
         worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
         totalMonthRow.getCell(1).value = `TOTAL ${month}`;
         totalMonthRow.getCell(importeColIndex).value = totalMonth || 0;
-        totalMonthRow.getCell(importeColIndex).numFmt = moneyFormat;
+        totalMonthRow.getCell(importeColIndex).numFmt = numberFormat;
         totalMonthRow.getCell(importe1ColIndex).value = totalMonthMonto2 || 0;
-        totalMonthRow.getCell(importe1ColIndex).numFmt = moneyFormat;
+        totalMonthRow.getCell(importe1ColIndex).numFmt = numberFormat;
         totalMonthRow.font = monthTotalStyle;
 
         // Poner 0 si es null para que se muestre
@@ -2326,10 +2399,10 @@ export class AppService {
       worksheet.mergeCells(`A${currentRow}:F${currentRow}`);
       totalCategoryRow.getCell(1).value = `TOTAL ${category}`;
       totalCategoryRow.getCell(importeColIndex).value = totalCategory || 0;
-      totalCategoryRow.getCell(importeColIndex).numFmt = moneyFormat;
+      totalCategoryRow.getCell(importeColIndex).numFmt = numberFormat;
       totalCategoryRow.getCell(importe1ColIndex).value =
         totalCategoryMonto2 || 0;
-      totalCategoryRow.getCell(importe1ColIndex).numFmt = moneyFormat;
+      totalCategoryRow.getCell(importe1ColIndex).numFmt = numberFormat;
       totalCategoryRow.font = { bold: true, size: 11 };
       totalCategoryRow.alignment = { horizontal: 'center' };
       currentRow += 2; // Espacio
@@ -2436,7 +2509,7 @@ export class AppService {
       ...cellStyle,
       alignment: { ...cellStyle.alignment, wrapText: true },
     };
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const numberFormat = '#,##0.00;[Red]-#,##0.00'; // Sin símbolo S/
 
     // Definir Cabeceras (las mismas 18 columnas que en Gasto-List)
     const headers = [
@@ -2491,9 +2564,9 @@ export class AppService {
       const addedRow = worksheet.getRow(currentRow);
 
       // Aplicar formatos
-      addedRow.getCell(6).numFmt = moneyFormat; // Monto
+      addedRow.getCell(6).numFmt = numberFormat; // Monto
       if (gasto.monto2) {
-        addedRow.getCell(8).numFmt = moneyFormat; // Monto2
+        addedRow.getCell(8).numFmt = numberFormat; // Monto2
       }
       if (gasto.fechaDevengado) {
         addedRow.getCell(12).value = new Date(gasto.fechaDevengado);
@@ -2584,7 +2657,6 @@ export class AppService {
     await this.gastoRepository.clear();
   }
 
-  
   /**
    * Genera un reporte simple de un proyecto para un mes específico
    */
@@ -2736,7 +2808,7 @@ export class AppService {
       },
     };
 
-    const moneyFormat = '"S/" #,##0.00;[Red]-"S/" #,##0.00';
+    const moneyFormat = '#,##0.00;[Red]-#,##0.00';
     const dateFormat = 'dd/mm/yyyy';
 
     let currentRow = 1;
@@ -2855,12 +2927,12 @@ export class AppService {
     totalRow.getCell(1).style = totalStyle;
 
     totalRow.getCell(6).value = totalMonto;
-    totalRow.getCell(6).numFmt = moneyFormat;
     totalRow.getCell(6).style = totalStyle;
+    totalRow.getCell(6).numFmt = moneyFormat;
 
     totalRow.getCell(8).value = totalMonto2;
-    totalRow.getCell(8).numFmt = moneyFormat;
     totalRow.getCell(8).style = totalStyle;
+    totalRow.getCell(8).numFmt = moneyFormat;
 
     // Bordes en toda la fila de total
     for (let col = 1; col <= headers.length; col++) {
