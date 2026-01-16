@@ -42,6 +42,19 @@ export class PicMetadata {
   @Column({ nullable: true })
   duracion: string ;
 
+  // --- NUEVOS CAMPOS AGREGADOS ---
+  @Column({ nullable: true })
+  facultad: string; // Ej: "CC. Biológicas"
+
+  @Column({ nullable: true })
+  resolucion: string; // Ej: "R.R. Nº 1825-2024/UNT"
+
+  @Column({ nullable: true })
+  tituloProyecto: string; // Para sobreescribir el título automático si es necesario
+
+  @Column({ nullable: true })
+  codigoProyecto: string; // Ej: "INC20-1-P..."
+  
   // Este es el 'PRESUPUESTO' del "cuadro rojo"
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
   presupuestoTotal: number | null;

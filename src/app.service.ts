@@ -15,6 +15,10 @@ export interface PicMetadataDto {
   tesista?: string;
   asesor?: string;
   duracion?: string;
+  facultad?: string;
+  resolucion?: string;
+  tituloProyecto?: string;
+  codigoProyecto?: string;
   presupuestoTotal?: number | null;
   ingresos?: IngresoPic[];
   gastosAnosAnteriores?: GastoPrevioPic[];
@@ -1864,22 +1868,40 @@ export class AppService {
 
       // --- Título del Proyecto ---
       worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
-      worksheet.getCell(`A${currentRow}`).value = projectName;
+      worksheet.getCell(`A${currentRow}`).value = metadata.tituloProyecto || projectName;
       worksheet.getCell(`A${currentRow}`).style = {
         ...titleStyle,
         alignment: centerAlign,
       };
       currentRow++;
 
-      // --- Metadata del Proyecto (Rellenada desde la BD) ---
-      worksheet.getCell(`A${currentRow}`).value =
-        `Investigador: ${metadata.investigador || ''}`;
+      // MODIFICADO: Subtítulo con Código y Resolución (si existen)
+      if (metadata.codigoProyecto || metadata.resolucion) {
+         let subTitle = '';
+         if (metadata.codigoProyecto) subTitle += `CÓDIGO: ${metadata.codigoProyecto}   `;
+         if (metadata.resolucion) subTitle += `RESOLUCIÓN: ${metadata.resolucion}`;
+         
+         worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
+         worksheet.getCell(`A${currentRow}`).value = subTitle;
+         worksheet.getCell(`A${currentRow}`).alignment = centerAlign;
+         worksheet.getCell(`A${currentRow}`).font = { bold: true, size: 10 };
+         currentRow++;
+      }
+      currentRow++; // Espacio
+
+      // 1. Investigador y Facultad
+      let investigadorTexto = `Investigador Responsable: ${metadata.investigador || ''}`;
+      if (metadata.facultad) {
+        investigadorTexto += ` - ${metadata.facultad}`;
+      }
+      worksheet.getCell(`A${currentRow}`).value = investigadorTexto;
       worksheet.getCell(`A${currentRow}`).font = { bold: true };
       currentRow++;
+
       // 2. Tesista (Solo si existe en metadata)
       if (metadata.tesista) {
         worksheet.getCell(`A${currentRow}`).value =
-          `Tesista: ${metadata.tesista}`;
+          `Tesista(s): ${metadata.tesista}`;
         worksheet.getCell(`A${currentRow}`).font = { bold: true };
         currentRow++;
       }
@@ -1891,6 +1913,8 @@ export class AppService {
         worksheet.getCell(`A${currentRow}`).font = { bold: true };
         currentRow++;
       }
+      
+      // 4. Duración
       worksheet.getCell(`A${currentRow}`).value =
         `Duración: ${metadata.duracion || ''}`;
       worksheet.getCell(`A${currentRow}`).font = { bold: true };
